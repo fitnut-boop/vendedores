@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<title>App Vendedores</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <h1>Vendedores</h1>
+  <nav>
+    <button data-tab="cot" class="on">Cotizador</button>
+    <button data-tab="datos">Datos</button>
+    <button id="btnSalir" hidden>Salir</button>
+  </nav>
+</header>
+
+<div id="login" hidden>
+  <form id="loginForm" class="card">
+    <h2 id="lTitulo">Ingresar</h2>
+    <div id="lNombreBox" hidden>
+      <label for="lNombre">Nombre y apellido</label>
+      <input id="lNombre" autocomplete="name" maxlength="80" style="margin-bottom:10px">
+    </div>
+    <label for="lEmail">Email</label>
+    <input id="lEmail" type="email" autocomplete="username" required>
+    <label for="lPass" style="margin-top:10px">Contraseña</label>
+    <input id="lPass" type="password" autocomplete="current-password" required minlength="8">
+    <small id="lAyuda" hidden>Mínimo 8 caracteres.</small>
+    <button class="btn" id="lBtn" type="submit" style="width:100%;margin-top:14px">Entrar</button>
+    <p id="lMsg" class="msg" role="alert"></p>
+    <button type="button" id="lToggle" class="link">¿Sos vendedor y todavía no tenés cuenta? Crear cuenta</button>
+  </form>
+
+  <div id="pendiente" class="card" hidden>
+    <h2>Cuenta pendiente de aprobación</h2>
+    <p class="hint">Tu cuenta ya fue creada. El administrador tiene que aprobarla antes de que puedas ver clientes y precios. Avisale y después tocá "Revisar".</p>
+    <button type="button" id="pRevisar" class="btn" style="width:100%">Revisar</button>
+    <button type="button" id="pSalir" class="link">Salir</button>
+  </div>
+</div>
+
+<main id="tab-cot">
+  <section class="card enc">
+    <div class="f">
+      <label for="fecha">Fecha</label>
+      <input id="fecha" readonly>
+    </div>
+    <div class="f cli">
+      <label for="cliente">Cliente</label>
+      <div class="wrap">
+        <input id="cliente" value="General" autocomplete="off" inputmode="search" placeholder="Nombre o número de cliente">
+        <button id="cliClear" type="button" hidden aria-label="Quitar cliente">×</button>
+      </div>
+      <small id="cliInfo"></small>
+    </div>
+    <div class="f">
+      <label for="segmento">Segmento</label>
+      <select id="segmento">
+        <option value="g">General</option>
+        <option value="m">Mayorista / Distribuidora</option>
+        <option value="f" disabled>Farmacia (próximamente)</option>
+      </select>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="head row-grid">
+      <span>Código</span><span>Descripción</span><span>Bultos</span><span>Unidades</span>
+      <span>Precio lista (bulto)</span><span>Bonif. %</span><span>Precio c/IVA</span><span></span>
+    </div>
+    <div id="rows"></div>
+    <button id="addRow" type="button" class="btn ghost">+ Agregar producto</button>
+  </section>
+
+  <section class="card tot">
+    <div><span>Subtotal</span><b id="tSub">$ 0,00</b></div>
+    <div><span>Bonificación</span><b id="tBon">$ 0,00</b></div>
+    <div><span>Neto</span><b id="tNeto">$ 0,00</b></div>
+    <div><span>IVA 21%</span><b id="tIva">$ 0,00</b></div>
+    <div class="grand"><span>Total con IVA</span><b id="tTot">$ 0,00</b></div>
+  </section>
+
+  <div class="actions">
+    <button id="btnWa" type="button" class="btn">Enviar por WhatsApp</button>
+    <button id="btnCopy" type="button" class="btn ghost">Copiar</button>
+    <button id="btnPrint" type="button" class="btn ghost">Imprimir / PDF</button>
+    <button id="btnNew" type="button" class="btn ghost danger">Nueva cotización</button>
+  </div>
+
+  <!-- Barra fija con el total, solo en celular -->
+  <div id="barra" class="barra">
+    <div><small>Total con IVA</small><b id="bTot">$ 0,00</b></div>
+    <button id="btnWa2" type="button" class="btn">WhatsApp</button>
+  </div>
+</main>
+
+<main id="tab-datos" hidden>
+  <section class="card" id="cardVend" hidden>
+    <h2>Vendedores</h2>
+    <p class="hint">Los vendedores crean su cuenta desde la pantalla de ingreso y quedan <b>pendientes</b> hasta que los apruebes.</p>
+    <div id="listaVend" class="vend"></div>
+  </section>
+
+  <section class="card">
+    <h2>Estado de los datos</h2>
+    <p id="status" class="status">Cargando…</p>
+    <p id="sync" class="status"></p>
+  </section>
+
+  <section class="card">
+    <h2>Carga manual (respaldo)</h2>
+    <p class="hint">Los datos se sincronizan solos desde Chess. Usá esto solo si la sincronización falla: subí los Excel y se guardan en la base de datos para todos los vendedores.</p>
+
+    <label class="file">
+      <span>1. Padrón de clientes <small>(Padron de clientes.xlsx)</small></span>
+      <input type="file" id="fClientes" accept=".xlsx,.xls">
+    </label>
+
+    <label class="file">
+      <span>2. Artículos <small>(…plantillaArticulosAR.xlsx → unidades por bulto)</small></span>
+      <input type="file" id="fArticulos" accept=".xlsx,.xls">
+    </label>
+
+    <div class="file">
+      <span>3. Lista de precios de un proveedor <small>(ej. 2026-10-15 Nestle Carga sistema.xlsx)</small></span>
+      <input type="text" id="provNombre" placeholder="Proveedor (ej. Nestlé)" value="Nestlé">
+      <input type="file" id="fLista" accept=".xlsx,.xls">
+    </div>
+
+    <p id="msg" class="msg" role="status"></p>
+  </section>
+
+  </main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

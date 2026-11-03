@@ -10,15 +10,32 @@
 <body>
 <header class="top">
   <h1>Vendedores</h1>
-  <nav>
-    <button data-tab="cot" class="on">Cotizador</button>
-    <button data-tab="vend" hidden>Vendedores</button>
-    <button data-tab="obj" hidden>Objetivos</button>
-    <button data-tab="cal" hidden>Calendario</button>
-    <button data-tab="datos">Datos</button>
-    <button id="btnSalir" hidden>Salir</button>
-  </nav>
+  <button id="btnSalir" hidden>Salir</button>
 </header>
+
+<!-- Solapas: abajo en el celular, arriba en la computadora -->
+<nav id="tabs" class="tabs" aria-label="Secciones" hidden>
+  <button type="button" data-tab="cot" class="on">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M8.5 7h7M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></svg>
+    <span>Cotizador</span>
+  </button>
+  <button type="button" data-tab="vend">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.4 2.7-5.5 6-5.5s6 2.1 6 5.5"/><circle cx="17.5" cy="9" r="2.4"/><path d="M17.5 14.2c2.4 0 3.9 1.6 3.9 4.3"/></svg>
+    <span>Vendedores</span>
+  </button>
+  <button type="button" data-tab="obj">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/></svg>
+    <span>Objetivos</span>
+  </button>
+  <button type="button" data-tab="cal">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+    <span>Calendario</span>
+  </button>
+  <button type="button" data-tab="datos" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6M4.5 12v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-6"/></svg>
+    <span>Datos</span><i class="badge" hidden></i>
+  </button>
+</nav>
 
 <div id="login" hidden>
   <form id="loginForm" class="card">

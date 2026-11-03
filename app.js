@@ -89,11 +89,15 @@ let esAdmin = !sb;
 let esJefe = !sb;   // el jefe ve los apartados de gestión de vendedores
 let sinConexion = false;
 
-// Muestra u oculta los apartados según el rol.
+// DECISIÓN TEMPORAL: todos los usuarios aprobados ven todas las secciones. Para volver a limitarlas a jefes y administradores:
+// poner false acá y ejecutar supabase/acceso_solo_jefes.sql en Supabase.
+const ACCESO_GENERAL = true;
+
+// Muestra u oculta las solapas según el rol. "Datos" (cargas y aprobación de usuarios) es solo del administrador.
 function aplicarRol() {
-  for (const t of ['vend', 'obj', 'cal']) $(`[data-tab="${t}"]`).hidden = !esJefe;
+  for (const t of ['vend', 'obj', 'cal']) $(`[data-tab="${t}"]`).hidden = !(ACCESO_GENERAL || esJefe);
   $('[data-tab="datos"]').hidden = !esAdmin;
-  $('.top').classList.toggle('multi', esJefe);
+  $('#tabs').hidden = false;
 }
 
 // PostgREST devuelve máx. 1000 filas por consulta: se pagina.
@@ -168,6 +172,7 @@ function showLogin(vista) {
   $('#loginForm').hidden = v !== 'login';
   $('#pendiente').hidden = v !== 'pendiente';
   $('main#tab-cot').hidden = !!v;
+  if (v) $('#tabs').hidden = true;
 }
 
 async function initAuth() {
@@ -251,7 +256,7 @@ async function cargarVendedores() {
   if (error) { cont.textContent = 'No se pudo cargar la lista de vendedores.'; return; }
   $('#cardVend').hidden = false;
   const pend = data.filter(u => u.rol === 'pendiente'), resto = data.filter(u => u.rol !== 'pendiente');
-  $('[data-tab="datos"]').textContent = pend.length ? `Datos (${pend.length})` : 'Datos';
+  const insignia = $('[data-tab="datos"] .badge'); insignia.textContent = pend.length; insignia.hidden = !pend.length;
 
   const accion = async (rpc, uid, texto) => {
     if (!confirm(texto)) return;
@@ -287,7 +292,7 @@ async function cargarVendedores() {
   for (const u of resto) cont.append(fila(u, u.rol === 'admin' ? [] : [
     u.rol === 'jefe'
       ? boton('Quitar jefe', 'ghost', () => cambiarRol(u, 'vendedor', `¿Dejar a ${u.nombre || u.email} como vendedor común?`))
-      : boton('Hacer jefe', 'ghost', () => cambiarRol(u, 'jefe', `¿Dar a ${u.nombre || u.email} acceso a los apartados de jefe (Vendedores, Objetivos, Calendario)?`)),
+      : boton('Hacer jefe', 'ghost', () => cambiarRol(u, 'jefe', `¿Dar a ${u.nombre || u.email} permiso de jefe? Podrá cargar los objetivos de los vendedores.`)),
     boton('Quitar', 'ghost danger', () => accion('eliminar_usuario', u.id, `¿Quitar el acceso y eliminar la cuenta de ${u.email}?`)),
   ]));
 }
@@ -623,8 +628,8 @@ $('#btnCopy').addEventListener('click', async e => {
 $('#btnPrint').addEventListener('click', () => print());
 
 /* ================= pestañas y carga de datos ================= */
-document.querySelectorAll('.top nav button[data-tab]').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('.top nav button[data-tab]').forEach(x => x.classList.toggle('on', x === b));
+document.querySelectorAll('#tabs button[data-tab]').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#tabs button[data-tab]').forEach(x => { x.classList.toggle('on', x === b); x.toggleAttribute('aria-current', x === b); });
   document.querySelectorAll('main[id^="tab-"]').forEach(m => { m.hidden = m.id !== 'tab-' + b.dataset.tab; });
   scrollTo(0, 0);
 }));

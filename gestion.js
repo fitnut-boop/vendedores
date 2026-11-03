@@ -91,7 +91,7 @@ async function cargarCobertura() {
     form.append(row);
   }
   $('#objMsg').textContent = '';
-  $('#cobObj').hidden = false;
+  $('#cobObj').hidden = !esJefe;   // todos ven el avance; solo jefes y administradores cargan objetivos
 }
 
 async function guardarObjetivos() {

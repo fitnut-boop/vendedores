@@ -33,7 +33,8 @@ Farmacia queda fuera por ahora (solo listas 1 y 2 de Chess).
 3. Se programan con pg_cron: ventas cada 30 min, vendedores y rutas cada 6 h, mes anterior una vez por día.
 4. Volumen = suma de `cantidadesTotal` (bultos con fracción) de las líneas de comprobantes; las notas de crédito ya vienen en negativo. Importe = `subtotalNeto` (sin IVA). Clientes con compra = clientes distintos con importe positivo en el mes. Cobertura de cartera = clientes con compra / clientes de las rutas vigentes del vendedor.
 5. Los objetivos del mes (bultos y clientes) los carga el jefe desde la app (Vendedores → Cumplimiento → Cobertura y volumen).
-6. El rol "jefe" se asigna desde Datos → Vendedores → "Hacer jefe".
+6. El rol "jefe" se asigna desde Datos → Vendedores → "Hacer jefe". Hoy el jefe solo se distingue en que puede **cargar objetivos**.
+7. **Acceso general (decisión temporal):** todos los usuarios aprobados ven todas las solapas (Cotizador, Vendedores, Objetivos, Calendario). "Datos" (cargas y aprobación de usuarios) es solo del administrador. Para limitar las secciones de gestión a jefes y administradores: `ACCESO_GENERAL = false` en `app.js` y ejecutar `supabase/acceso_solo_jefes.sql` (para volver: `acceso_general.sql`).
 
 ### 2. GitHub Pages – gratis
 1. Crear cuenta en https://github.com y un repositorio **público** (ej. `vendedores`). Es público pero solo contiene código: los datos viven en Supabase.

@@ -637,6 +637,7 @@ document.querySelectorAll('#tabs button[data-tab]').forEach(b => b.addEventListe
 // Apartado "Vendedores": menú de secciones y botón Volver
 const verSub = id => {
   $('#vMenu').hidden = !!id;
+  $('#vResumen').hidden = !!id;
   document.querySelectorAll('.sub').forEach(s => { s.hidden = s.id !== 'sub-' + id; });
   scrollTo(0, 0);
 };

@@ -119,6 +119,18 @@
 
 <!-- ===== Apartados del jefe (por ahora son el esqueleto: cada uno dice qué va a mostrar) ===== -->
 <main id="tab-vend" hidden>
+  <section class="card" id="vResumen">
+    <div class="rs-cab"><h2>Avance del mes</h2><small id="rsMes"></small></div>
+    <p id="rsEstado" class="hint"></p>
+    <div id="rsAros" class="rings"></div>
+    <div class="seg" role="group" aria-label="Métrica de las barras">
+      <button type="button" data-m="vol" class="on">Volumen</button>
+      <button type="button" data-m="cli">Clientes con compra</button>
+    </div>
+    <div id="rsBarras" class="rs-barras"></div>
+    <button type="button" id="rsDetalle" class="btn ghost">Ver detalle completo</button>
+  </section>
+
   <section class="card" id="vMenu">
     <h2>Vendedores</h2>
     <div class="menu">
@@ -187,7 +199,7 @@
 <main id="tab-cal" hidden>
   <section class="card">
     <h2>Calendario</h2>
-    <p class="hint">Todavía sin definir qué va a mostrar (por ejemplo visitas, entregas o fechas importantes).</p>
+    <p class="hint">Más adelante se va a conectar con Google Calendar. Todavía falta definir qué eventos va a mostrar (por ejemplo visitas, entregas o fechas importantes).</p>
   </section>
 </main>
 

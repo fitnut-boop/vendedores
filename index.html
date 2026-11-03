@@ -12,6 +12,9 @@
   <h1>Vendedores</h1>
   <nav>
     <button data-tab="cot" class="on">Cotizador</button>
+    <button data-tab="vend" hidden>Vendedores</button>
+    <button data-tab="obj" hidden>Objetivos</button>
+    <button data-tab="cal" hidden>Calendario</button>
     <button data-tab="datos">Datos</button>
     <button id="btnSalir" hidden>Salir</button>
   </nav>
@@ -95,6 +98,60 @@
     <div><small>Total con IVA</small><b id="bTot">$ 0,00</b></div>
     <button id="btnWa2" type="button" class="btn">WhatsApp</button>
   </div>
+</main>
+
+<!-- ===== Apartados del jefe (por ahora son el esqueleto: cada uno dice qué va a mostrar) ===== -->
+<main id="tab-vend" hidden>
+  <section class="card" id="vMenu">
+    <h2>Vendedores</h2>
+    <div class="menu">
+      <button type="button" class="item" data-sub="rec"><b>Reconocimientos</b><small>Próximamente</small></button>
+      <button type="button" class="item" data-sub="cc"><b>Cuentas corrientes</b><small>Próximamente</small></button>
+      <button type="button" class="item" data-sub="cum"><b>Cumplimiento de objetivos</b><small>Cobertura y volumen · Bees</small></button>
+      <button type="button" class="item" data-sub="rut"><b>Rutas de los vendedores</b><small>Próximamente</small></button>
+    </div>
+  </section>
+
+  <section class="card sub" id="sub-rec" hidden>
+    <button type="button" class="link volver">‹ Volver</button>
+    <h2>Reconocimientos</h2>
+    <p class="hint">Pendiente de definir con vos qué se reconoce y cómo se mide (por ejemplo ranking del mes o premios por cumplir objetivos).</p>
+  </section>
+
+  <section class="card sub" id="sub-cc" hidden>
+    <button type="button" class="link volver">‹ Volver</button>
+    <h2>Cuentas corrientes</h2>
+    <p class="hint">Va a mostrar la deuda de los clientes de cada vendedor. Chess nos da los comprobantes impagos y los días de deuda vencida de cada cliente. El <b>importe adeudado</b> no sale de la API: hace falta un reporte de cuentas por cobrar de Chess.</p>
+  </section>
+
+  <section class="card sub" id="sub-cum" hidden>
+    <button type="button" class="link volver">‹ Volver</button>
+    <h2>Cumplimiento de objetivos</h2>
+    <div class="menu">
+      <div class="item soon"><b>Cobertura y volumen</b><small>Bultos y clientes con compra de cada vendedor contra su objetivo del mes. Datos: ventas de Chess + objetivos cargados. <em>Es el próximo a desarrollar.</em></small></div>
+      <div class="item soon"><b>Bees</b><small>A desarrollar cuando sepamos de dónde sale la información.</small></div>
+    </div>
+  </section>
+
+  <section class="card sub" id="sub-rut" hidden>
+    <button type="button" class="link volver">‹ Volver</button>
+    <h2>Rutas de los vendedores</h2>
+    <p class="hint">Va a mostrar las rutas de venta de cada vendedor y sus clientes. Datos: rutas de venta y fuerza de venta de Chess.</p>
+  </section>
+</main>
+
+<main id="tab-obj" hidden>
+  <section class="card">
+    <h2>Objetivos y concursos</h2>
+    <p class="hint">Todavía sin definir. Cuando sepamos en qué consisten, lo armamos acá.</p>
+  </section>
+</main>
+
+<main id="tab-cal" hidden>
+  <section class="card">
+    <h2>Calendario</h2>
+    <p class="hint">Todavía sin definir qué va a mostrar (por ejemplo visitas, entregas o fechas importantes).</p>
+  </section>
 </main>
 
 <main id="tab-datos" hidden>

@@ -86,7 +86,15 @@ const CFG = window.APP_CONFIG || {};
 const sb = (window.supabase && CFG.url && CFG.key && !/TU-PROYECTO|TU-ANON/.test(CFG.url + CFG.key))
   ? window.supabase.createClient(CFG.url, CFG.key) : null;
 let esAdmin = !sb;
+let esJefe = !sb;   // el jefe ve los apartados de gestión de vendedores
 let sinConexion = false;
+
+// Muestra u oculta los apartados según el rol.
+function aplicarRol() {
+  for (const t of ['vend', 'obj', 'cal']) $(`[data-tab="${t}"]`).hidden = !esJefe;
+  $('[data-tab="datos"]').hidden = !esAdmin;
+  $('.top').classList.toggle('multi', esJefe);
+}
 
 // PostgREST devuelve máx. 1000 filas por consulta: se pagina.
 async function fetchAll(table, cols, orderBy) {
@@ -163,15 +171,16 @@ function showLogin(vista) {
 }
 
 async function initAuth() {
-  if (!sb) return true;
+  if (!sb) { aplicarRol(); return true; }
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { showLogin('login'); return false; }
   const { data: p } = await sb.from('perfiles').select('rol').eq('id', session.user.id).maybeSingle();
   if (p?.rol === 'pendiente') { showLogin('pendiente'); return false; } // cuenta creada pero todavía no aprobada
   esAdmin = p?.rol === 'admin';
+  esJefe = esAdmin || p?.rol === 'jefe';
   showLogin(null);
   $('#btnSalir').hidden = false;
-  $('[data-tab="datos"]').hidden = !esAdmin;
+  aplicarRol();
   if (esAdmin) cargarVendedores();
   return true;
 }
@@ -250,11 +259,17 @@ async function cargarVendedores() {
     if (err) { alert('No se pudo completar: ' + err.message); return; }
     cargarVendedores();
   };
+  const cambiarRol = async (u, nuevo, texto) => {
+    if (!confirm(texto)) return;
+    const { error: err } = await sb.rpc('cambiar_rol', { uid: u.id, nuevo });
+    if (err) { alert('No se pudo completar: ' + err.message); return; }
+    cargarVendedores();
+  };
   const fila = (u, botones) => {
     const d = document.createElement('div'); d.className = 'v';
     const t = document.createElement('div');
     const b = document.createElement('b'); b.textContent = u.nombre || u.email; // textContent: el nombre lo escribe el usuario
-    const s = document.createElement('small'); s.textContent = u.email + (u.rol === 'admin' ? ' · administrador' : '');
+    const s = document.createElement('small'); s.textContent = u.email + (u.rol === 'admin' ? ' · administrador' : u.rol === 'jefe' ? ' · jefe' : '');
     t.append(b, s); d.append(t);
     if (botones.length) { const a = document.createElement('div'); a.className = 'acc'; a.append(...botones); d.append(a); }
     return d;
@@ -270,6 +285,9 @@ async function cargarVendedores() {
   ]));
   const h2 = document.createElement('h3'); h2.textContent = 'Con acceso'; cont.append(h2);
   for (const u of resto) cont.append(fila(u, u.rol === 'admin' ? [] : [
+    u.rol === 'jefe'
+      ? boton('Quitar jefe', 'ghost', () => cambiarRol(u, 'vendedor', `¿Dejar a ${u.nombre || u.email} como vendedor común?`))
+      : boton('Hacer jefe', 'ghost', () => cambiarRol(u, 'jefe', `¿Dar a ${u.nombre || u.email} acceso a los apartados de jefe (Vendedores, Objetivos, Calendario)?`)),
     boton('Quitar', 'ghost danger', () => accion('eliminar_usuario', u.id, `¿Quitar el acceso y eliminar la cuenta de ${u.email}?`)),
   ]));
 }
@@ -607,8 +625,16 @@ $('#btnPrint').addEventListener('click', () => print());
 /* ================= pestañas y carga de datos ================= */
 document.querySelectorAll('.top nav button[data-tab]').forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll('.top nav button[data-tab]').forEach(x => x.classList.toggle('on', x === b));
-  $('#tab-cot').hidden = b.dataset.tab !== 'cot';
-  $('#tab-datos').hidden = b.dataset.tab !== 'datos';
+  document.querySelectorAll('main[id^="tab-"]').forEach(m => { m.hidden = m.id !== 'tab-' + b.dataset.tab; });
+  scrollTo(0, 0);
+}));
+
+// Apartado "Vendedores": menú de secciones y botón Volver
+document.querySelectorAll('#vMenu .item[data-sub]').forEach(b => b.addEventListener('click', () => {
+  $('#vMenu').hidden = true; $('#sub-' + b.dataset.sub).hidden = false; scrollTo(0, 0);
+}));
+document.querySelectorAll('.sub .volver').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.sub').forEach(s => { s.hidden = true; }); $('#vMenu').hidden = false;
 }));
 
 function renderStatus() {

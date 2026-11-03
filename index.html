@@ -119,74 +119,71 @@
 
 <!-- ===== Apartados del jefe (por ahora son el esqueleto: cada uno dice qué va a mostrar) ===== -->
 <main id="tab-vend" hidden>
-  <section class="card" id="vResumen">
-    <div class="rs-cab"><h2>Avance del mes</h2><small id="rsMes"></small></div>
-    <p id="rsEstado" class="hint"></p>
-    <div id="rsAros" class="rings"></div>
-    <div class="seg" role="group" aria-label="Métrica de las barras">
-      <button type="button" data-m="vol" class="on">Volumen</button>
-      <button type="button" data-m="cli">Clientes con compra</button>
-    </div>
-    <div id="rsBarras" class="rs-barras"></div>
-    <button type="button" id="rsDetalle" class="btn ghost">Ver detalle completo</button>
-  </section>
+  <div class="vgrid">
+    <!-- Avance del mes: de acá se desprenden los objetivos de volumen, cobertura y Bees -->
+    <section class="card" id="vResumen">
+      <div class="rs-cab"><h2>Avance del mes</h2><small id="rsMes"></small></div>
+      <p id="rsEstado" class="hint"></p>
+      <div id="rsAros" class="kpis"></div>
+      <div class="rs-sub"><h3 id="rsTit">Volumen por vendedor</h3></div>
+      <div id="rsBarras" class="rs-barras"></div>
+      <button type="button" id="rsDetalle" class="btn">Ver detalle y objetivos</button>
+    </section>
 
-  <section class="card" id="vMenu">
-    <h2>Vendedores</h2>
-    <div class="menu">
-      <button type="button" class="item" data-sub="rec"><b>Reconocimientos</b><small>Próximamente</small></button>
-      <button type="button" class="item" data-sub="cc"><b>Cuentas corrientes</b><small>Próximamente</small></button>
-      <button type="button" class="item" data-sub="cum"><b>Cumplimiento de objetivos</b><small>Cobertura y volumen · Bees</small></button>
-      <button type="button" class="item" data-sub="rut"><b>Rutas de los vendedores</b><small>Próximamente</small></button>
-    </div>
-  </section>
+    <section class="card" id="vMenu">
+      <h2>Más sobre los vendedores</h2>
+      <div class="menu">
+        <button type="button" class="item" data-sub="rec"><b>Reconocimientos</b><small>Próximamente</small></button>
+        <button type="button" class="item" data-sub="cc"><b>Cuentas corrientes</b><small>Próximamente</small></button>
+        <button type="button" class="item" data-sub="rut"><b>Rutas de los vendedores</b><small>Rutas de venta y sus clientes</small></button>
+      </div>
+    </section>
 
-  <section class="card sub" id="sub-rec" hidden>
-    <button type="button" class="link volver">‹ Volver</button>
-    <h2>Reconocimientos</h2>
-    <p class="hint">Pendiente de definir con vos qué se reconoce y cómo se mide (por ejemplo ranking del mes o premios por cumplir objetivos).</p>
-  </section>
+    <section class="card sub" id="sub-rec" hidden>
+      <button type="button" class="link volver">‹ Volver</button>
+      <h2>Reconocimientos</h2>
+      <p class="hint">Pendiente de definir con vos qué se reconoce y cómo se mide (por ejemplo ranking del mes o premios por cumplir objetivos).</p>
+    </section>
 
-  <section class="card sub" id="sub-cc" hidden>
-    <button type="button" class="link volver">‹ Volver</button>
-    <h2>Cuentas corrientes</h2>
-    <p class="hint">Va a mostrar la deuda de los clientes de cada vendedor. Chess nos da los comprobantes impagos y los días de deuda vencida de cada cliente. El <b>importe adeudado</b> no sale de la API: hace falta un reporte de cuentas por cobrar de Chess.</p>
-  </section>
+    <section class="card sub" id="sub-cc" hidden>
+      <button type="button" class="link volver">‹ Volver</button>
+      <h2>Cuentas corrientes</h2>
+      <p class="hint">Va a mostrar la deuda de los clientes de cada vendedor. Chess nos da los comprobantes impagos y los días de deuda vencida de cada cliente. El <b>importe adeudado</b> no sale de la API: hace falta un reporte de cuentas por cobrar de Chess.</p>
+    </section>
 
-  <section class="card sub" id="sub-cum" hidden>
-    <button type="button" class="link volver">‹ Volver</button>
-    <h2>Cumplimiento de objetivos</h2>
-    <div class="menu">
-      <button type="button" class="item" data-sub="cob"><b>Cobertura y volumen</b><small>Bultos y clientes con compra de cada vendedor contra su objetivo del mes</small></button>
-      <div class="item soon"><b>Bees</b><small>A desarrollar cuando sepamos de dónde sale la información.</small></div>
-    </div>
-  </section>
+    <!-- Detalle de Volumen o de Cobertura (se llena desde gestion.js según el indicador elegido) -->
+    <section class="card sub" id="sub-det" hidden>
+      <button type="button" class="link volver">‹ Volver al avance del mes</button>
+      <h2 id="detTitulo"></h2>
+      <div class="mes">
+        <button type="button" id="mesAnt" aria-label="Mes anterior">‹</button>
+        <b id="mesTxt"></b>
+        <button type="button" id="mesSig" aria-label="Mes siguiente">›</button>
+      </div>
+      <p id="detEstado" class="hint"></p>
+      <div id="detTotal" class="cob-total"></div>
+      <div id="detLista" class="det-lista"></div>
+      <details id="detObj" class="obj" hidden>
+        <summary id="objResumen">Cargar objetivos del mes</summary>
+        <div id="objForm"></div>
+        <button type="button" id="objGuardar" class="btn">Guardar objetivos</button>
+        <p id="objMsg" class="msg" role="status"></p>
+      </details>
+    </section>
 
-  <section class="card sub" id="sub-cob" hidden>
-    <button type="button" class="link volver" data-back="cum">‹ Volver</button>
-    <h2>Cobertura y volumen</h2>
-    <div class="mes">
-      <button type="button" id="mesAnt" aria-label="Mes anterior">‹</button>
-      <b id="mesTxt"></b>
-      <button type="button" id="mesSig" aria-label="Mes siguiente">›</button>
-    </div>
-    <p id="cobEstado" class="hint"></p>
-    <div id="cobTotal" class="cob-total"></div>
-    <div id="cobLista" class="vend"></div>
-    <details id="cobObj" class="obj" hidden>
-      <summary>Cargar objetivos del mes</summary>
-      <div id="objForm"></div>
-      <button type="button" id="objGuardar" class="btn">Guardar objetivos</button>
-      <p id="objMsg" class="msg" role="status"></p>
-    </details>
-  </section>
+    <section class="card sub" id="sub-bees" hidden>
+      <button type="button" class="link volver">‹ Volver al avance del mes</button>
+      <h2>Bees</h2>
+      <p class="hint">Se desarrolla más adelante, cuando sepamos de dónde sale la información de uso de Bees. Va a mostrar el avance de cada vendedor en la carga de pedidos por Bees, con su objetivo, igual que Volumen y Cobertura.</p>
+    </section>
 
-  <section class="card sub" id="sub-rut" hidden>
-    <button type="button" class="link volver">‹ Volver</button>
-    <h2>Rutas de los vendedores</h2>
-    <p id="rutEstado" class="hint"></p>
-    <div id="rutLista" class="vend"></div>
-  </section>
+    <section class="card sub" id="sub-rut" hidden>
+      <button type="button" class="link volver">‹ Volver</button>
+      <h2>Rutas de los vendedores</h2>
+      <p id="rutEstado" class="hint"></p>
+      <div id="rutLista" class="vend"></div>
+    </section>
+  </div>
 </main>
 
 <main id="tab-obj" hidden>
@@ -198,8 +195,15 @@
 
 <main id="tab-cal" hidden>
   <section class="card">
-    <h2>Calendario</h2>
-    <p class="hint">Más adelante se va a conectar con Google Calendar. Todavía falta definir qué eventos va a mostrar (por ejemplo visitas, entregas o fechas importantes).</p>
+    <div class="rs-cab">
+      <h2>Calendario</h2>
+      <a id="calAbrir" class="ext" href="https://calendar.google.com/" target="_blank" rel="noopener">Abrir en Google Calendar ↗</a>
+    </div>
+    <div class="cal-wrap"><iframe id="calFrame" title="Google Calendar" loading="lazy"></iframe></div>
+    <details class="ayuda">
+      <summary>¿No ves los eventos?</summary>
+      <p>Este calendario es el de la cuenta de Google conectada (y los feriados de Argentina). Para que lo vea cada usuario tiene que tener permiso: en Google Calendar → Configuración del calendario → <b>Compartir con personas específicas</b> (agregar su email) o <b>Hacer disponible públicamente</b> si querés que lo vean todos. Si lo ves vacío, también revisá que estés con tu cuenta de Google abierta en este navegador.</p>
+    </details>
   </section>
 </main>
 

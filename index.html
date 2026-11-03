@@ -128,15 +128,35 @@
     <button type="button" class="link volver">‹ Volver</button>
     <h2>Cumplimiento de objetivos</h2>
     <div class="menu">
-      <div class="item soon"><b>Cobertura y volumen</b><small>Bultos y clientes con compra de cada vendedor contra su objetivo del mes. Datos: ventas de Chess + objetivos cargados. <em>Es el próximo a desarrollar.</em></small></div>
+      <button type="button" class="item" data-sub="cob"><b>Cobertura y volumen</b><small>Bultos y clientes con compra de cada vendedor contra su objetivo del mes</small></button>
       <div class="item soon"><b>Bees</b><small>A desarrollar cuando sepamos de dónde sale la información.</small></div>
     </div>
+  </section>
+
+  <section class="card sub" id="sub-cob" hidden>
+    <button type="button" class="link volver" data-back="cum">‹ Volver</button>
+    <h2>Cobertura y volumen</h2>
+    <div class="mes">
+      <button type="button" id="mesAnt" aria-label="Mes anterior">‹</button>
+      <b id="mesTxt"></b>
+      <button type="button" id="mesSig" aria-label="Mes siguiente">›</button>
+    </div>
+    <p id="cobEstado" class="hint"></p>
+    <div id="cobTotal" class="cob-total"></div>
+    <div id="cobLista" class="vend"></div>
+    <details id="cobObj" class="obj" hidden>
+      <summary>Cargar objetivos del mes</summary>
+      <div id="objForm"></div>
+      <button type="button" id="objGuardar" class="btn">Guardar objetivos</button>
+      <p id="objMsg" class="msg" role="status"></p>
+    </details>
   </section>
 
   <section class="card sub" id="sub-rut" hidden>
     <button type="button" class="link volver">‹ Volver</button>
     <h2>Rutas de los vendedores</h2>
-    <p class="hint">Va a mostrar las rutas de venta de cada vendedor y sus clientes. Datos: rutas de venta y fuerza de venta de Chess.</p>
+    <p id="rutEstado" class="hint"></p>
+    <div id="rutLista" class="vend"></div>
   </section>
 </main>
 
@@ -196,5 +216,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
+<script src="gestion.js"></script>
 </body>
 </html>

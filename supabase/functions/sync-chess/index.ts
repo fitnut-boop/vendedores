@@ -165,6 +165,83 @@ async function syncPrecios(chess: Chess, db: any) {
   return { cantidad: filas.length, estado: e1, articulos: e2 };
 }
 
+/* ---------- gestión de vendedores: vendedores, rutas y ventas ---------- */
+
+export function mapVendedor(p: any) {
+  const nombre = txt(p.desPersonal) || [p.apellido, p.nombres].map(txt).filter(Boolean).join(' ');
+  return { id: num(p.idPersonal), nombre: nombre || `Personal ${p.idPersonal}`, cargo: txt(p.cargo), id_superior: num(p.idPersonalSuperior) };
+}
+
+// Fecha de hoy en Argentina (UTC-3) como YYYY-MM-DD
+const hoyAR = () => new Date(Date.now() - 3 * 3600 * 1000).toISOString().slice(0, 10);
+
+// Rutas vigentes hoy (la API trae también versiones vencidas de cada ruta).
+export function rutasVigentes(crudas: any[], hoy: string) {
+  const mejor = new Map<string, any>();
+  for (const r of crudas) {
+    if (r.anulado === true || r.anulado === 'SI') continue;
+    const desde = txt(r.fechaDesde).slice(0, 10), hasta = txt(r.fechaHasta).slice(0, 10);
+    if (desde && desde > hoy) continue;
+    if (hasta && hasta < hoy) continue;
+    const k = [r.idSucursal, r.idFuerzaVentas, r.idModoAtencion, r.idRuta].join('|');
+    const prev = mejor.get(k);
+    if (!prev || desde > txt(prev.fechaDesde).slice(0, 10)) mejor.set(k, r);
+  }
+  const rutas: any[] = [], clientes: any[] = [];
+  for (const r of mejor.values()) {
+    const base = { id_sucursal: num(r.idSucursal), id_fuerza: num(r.idFuerzaVentas), id_modo: txt(r.idModoAtencion), id_ruta: num(r.idRuta) };
+    rutas.push({ ...base, descripcion: txt(r.desRuta), id_vendedor: num(r.idPersonal), dias_visita: txt(r.diasVisita), anulada: false });
+    for (const c of Array.isArray(r.eClientesRutas) ? r.eClientesRutas : []) if (c.idCliente != null) clientes.push({ ...base, id_cliente: num(c.idCliente) });
+  }
+  return { rutas, clientes };
+}
+
+// Agrupa las líneas de comprobantes por día + vendedor + cliente. Las notas de crédito ya vienen en negativo.
+// bultos = cantidadesTotal (bultos con fracción), importe = subtotalNeto (sin IVA, ya bonificado).
+export function agruparVentas(lineas: any[]) {
+  const por = new Map<string, any>();
+  const docs = new Map<string, Set<string>>();
+  for (const l of lineas) {
+    if (l.anulado === true || l.anulado === 'SI') continue;
+    const fecha = txt(l.fechaComprobate).slice(0, 10), v = num(l.idVendedor), c = num(l.idCliente);
+    if (!fecha || v == null || c == null) continue;
+    const k = `${fecha}|${v}|${c}`;
+    const f = por.get(k) ?? { fecha, id_vendedor: v, id_cliente: c, comprobantes: 0, bultos: 0, importe: 0 };
+    f.bultos += num(l.cantidadesTotal) ?? 0;
+    f.importe += num(l.subtotalNeto) ?? 0;
+    const d = docs.get(k) ?? new Set<string>();
+    d.add([l.idDocumento, l.letra, l.serie, l.nrodoc].join('-'));
+    docs.set(k, d); por.set(k, f);
+  }
+  return [...por.entries()]
+    .map(([k, f]) => ({ ...f, comprobantes: docs.get(k)!.size, bultos: Math.round(f.bultos * 1000) / 1000, importe: Math.round(f.importe * 100) / 100 }))
+    .sort((a, b) => `${a.fecha}|${a.id_vendedor}|${a.id_cliente}`.localeCompare(`${b.fecha}|${b.id_vendedor}|${b.id_cliente}`));
+}
+
+async function syncGestion(chess: Chess, db: any) {
+  const vend = rowsOf(await chess.get('/personalComercial/')).map(mapVendedor).filter((v) => v.id != null);
+  if (!vend.length) throw new Error('Chess devolvió 0 vendedores: no se pisa la base.');
+  const e1 = await guardarSiCambio(db, 'vendedores', vend, 'reemplazar_vendedores', { filas: vend });
+  const { rutas, clientes } = rutasVigentes(rowsOf(await chess.get('/rutasVenta/')), hoyAR());
+  if (!rutas.length) throw new Error('Chess devolvió 0 rutas vigentes: no se pisa la base.');
+  const e2 = await guardarSiCambio(db, 'rutas', [rutas, clientes], 'reemplazar_rutas', { rutas_json: rutas, clientes_json: clientes });
+  return { vendedores: vend.length, rutas: rutas.length, clientesEnRutas: clientes.length, estado: [e1, e2] };
+}
+
+// Ventas del mes en curso (o del mes anterior con ?mes=anterior): trae las líneas de comprobantes y las agrupa.
+async function syncVentas(chess: Chess, db: any, anterior: boolean) {
+  const hoy = hoyAR();
+  const [y, m] = hoy.split('-').map(Number);
+  const ini = anterior ? new Date(Date.UTC(y, m - 2, 1)) : new Date(Date.UTC(y, m - 1, 1));
+  const fin = anterior ? new Date(Date.UTC(y, m - 1, 0)) : null;
+  const desde = ini.toISOString().slice(0, 10), hasta = fin ? fin.toISOString().slice(0, 10) : hoy;
+  const crudas = await chess.todos('/ventas/', (l) => [l.idEmpresa, l.idDocumento, l.letra, l.serie, l.nrodoc, l.idLinea].join('|'), { fechaDesde: desde, fechaHasta: hasta, detallado: true });
+  const filas = agruparVentas(crudas);
+  if (!filas.length) throw new Error(`Chess devolvió 0 ventas entre ${desde} y ${hasta}: no se pisa la base.`);
+  const estado = await guardarSiCambio(db, `ventas_${desde.slice(0, 7)}`, filas, 'reemplazar_ventas', { desde, hasta, filas });
+  return { desde, hasta, lineas: crudas.length, filas: filas.length, estado };
+}
+
 /* ---------- entrada ---------- */
 
 Deno.serve(async (req: Request) => {
@@ -190,6 +267,8 @@ Deno.serve(async (req: Request) => {
     const out: any = {};
     if (!solo || solo === 'clientes') out.clientes = await syncClientes(chess, db);
     if (!solo || solo === 'precios') out.precios = await syncPrecios(chess, db);
+    if (solo === 'gestion') out.gestion = await syncGestion(chess, db);
+    if (solo === 'ventas') out.ventas = await syncVentas(chess, db, url.searchParams.get('mes') === 'anterior');
     return Response.json({ ok: true, ...out });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

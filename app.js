@@ -630,12 +630,13 @@ document.querySelectorAll('.top nav button[data-tab]').forEach(b => b.addEventLi
 }));
 
 // Apartado "Vendedores": menú de secciones y botón Volver
-document.querySelectorAll('#vMenu .item[data-sub]').forEach(b => b.addEventListener('click', () => {
-  $('#vMenu').hidden = true; $('#sub-' + b.dataset.sub).hidden = false; scrollTo(0, 0);
-}));
-document.querySelectorAll('.sub .volver').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('.sub').forEach(s => { s.hidden = true; }); $('#vMenu').hidden = false;
-}));
+const verSub = id => {
+  $('#vMenu').hidden = !!id;
+  document.querySelectorAll('.sub').forEach(s => { s.hidden = s.id !== 'sub-' + id; });
+  scrollTo(0, 0);
+};
+document.querySelectorAll('[data-sub]').forEach(b => b.addEventListener('click', () => verSub(b.dataset.sub)));
+document.querySelectorAll('.sub .volver').forEach(b => b.addEventListener('click', () => verSub(b.dataset.back || null)));
 
 function renderStatus() {
   const provs = Object.entries(datos.listas).map(([p, l]) => `${p}: ${l.items.length} productos`).join(' · ');

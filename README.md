@@ -27,6 +27,14 @@ Una función de Supabase lee la API de Chess y guarda los datos; `pg_cron` la di
 
 Farmacia queda fuera por ahora (solo listas 1 y 2 de Chess).
 
+### 1c. Apartado "Vendedores" (jefe): cobertura, volumen y rutas
+1. Ejecutar en el SQL Editor, en este orden: `registro.sql`, `roles.sql` y `gestion.sql`.
+2. La misma función `sync-chess` trae vendedores, rutas y ventas (`?tarea=gestion`, `?tarea=ventas`, `?tarea=ventas&mes=anterior`).
+3. Se programan con pg_cron: ventas cada 30 min, vendedores y rutas cada 6 h, mes anterior una vez por día.
+4. Volumen = suma de `cantidadesTotal` (bultos con fracción) de las líneas de comprobantes; las notas de crédito ya vienen en negativo. Importe = `subtotalNeto` (sin IVA). Clientes con compra = clientes distintos con importe positivo en el mes. Cobertura de cartera = clientes con compra / clientes de las rutas vigentes del vendedor.
+5. Los objetivos del mes (bultos y clientes) los carga el jefe desde la app (Vendedores → Cumplimiento → Cobertura y volumen).
+6. El rol "jefe" se asigna desde Datos → Vendedores → "Hacer jefe".
+
 ### 2. GitHub Pages – gratis
 1. Crear cuenta en https://github.com y un repositorio **público** (ej. `vendedores`). Es público pero solo contiene código: los datos viven en Supabase.
 2. Subir el contenido de esta carpeta (`index.html`, `app.js`, `styles.css`, `config.js`, `supabase/`). No subir `serve.ps1` si no querés.

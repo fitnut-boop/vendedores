@@ -86,18 +86,30 @@ const CFG = window.APP_CONFIG || {};
 const sb = (window.supabase && CFG.url && CFG.key && !/TU-PROYECTO|TU-ANON/.test(CFG.url + CFG.key))
   ? window.supabase.createClient(CFG.url, CFG.key) : null;
 let esAdmin = !sb;
-let esJefe = !sb;   // el jefe ve los apartados de gestión de vendedores
+let esJefe = !sb;   // el jefe carga objetivos
+let logueado = !sb; // true si hay una sesión de usuario aprobado (en modo local siempre)
+let perfilActual = null; // { nombre, rol }
 let sinConexion = false;
 
-// DECISIÓN TEMPORAL: todos los usuarios aprobados ven todas las secciones. Para volver a limitarlas a jefes y administradores:
+// DECISIÓN TEMPORAL: todos los usuarios aprobados ven todas las secciones del detalle. Para volver a limitarlas a jefes y administradores:
 // poner false acá y ejecutar supabase/acceso_solo_jefes.sql en Supabase.
 const ACCESO_GENERAL = true;
 
-// Muestra u oculta las solapas según el rol. "Datos" (cargas y aprobación de usuarios) es solo del administrador.
+// Sin ingresar se ven el Resumen y el Cotizador. El detalle (con candado) pide usuario. "Datos" es solo del administrador.
 function aplicarRol() {
-  for (const t of ['vend', 'obj', 'cal']) $(`[data-tab="${t}"]`).hidden = !(ACCESO_GENERAL || esJefe);
+  const detalle = logueado && (ACCESO_GENERAL || esJefe);
+  for (const t of ['vend', 'obj', 'cal']) $(`[data-tab="${t}"]`).classList.toggle('bloqueada', !detalle);
   $('[data-tab="datos"]').hidden = !esAdmin;
-  $('#tabs').hidden = false;
+  document.body.classList.toggle('anon', !logueado);
+  $('#btnIngresar').hidden = !!perfilActual;
+  $('#btnSalir').hidden = !perfilActual;
+  $('#chip').hidden = !perfilActual;
+  if (perfilActual) {
+    const etiqueta = { admin: 'Administrador', jefe: 'Jefe de ventas', vendedor: 'Vendedor', pendiente: 'Pendiente de aprobación' };
+    $('#chipNombre').textContent = perfilActual.nombre || '';
+    $('#chipRol').textContent = etiqueta[perfilActual.rol] || '';
+    $('#chipIni').textContent = (perfilActual.nombre || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0].toUpperCase()).join('');
+  }
 }
 
 // PostgREST devuelve máx. 1000 filas por consulta: se pagina.
@@ -125,15 +137,16 @@ async function loadData(force = false) {
     const { data: ver, error } = await sb.from('version').select('v').eq('id', 1).single();
     if (error) throw error;
     sinConexion = false;
-    if (!force && local && local.version === ver.v) datos = { ...vacio, ...local };
+    // Sin sesión solo se guardan precios y unidades (los clientes requieren ingresar): si cambió el tipo de sesión, se vuelve a descargar.
+    if (!force && local && local.version === ver.v && !!local.conClientes === logueado) datos = { ...vacio, ...local };
     else {
       const [cl, pr, ar] = await Promise.all([
-        fetchAll('clientes', 'n,razon,fantasia,lista,subcanal', ['n']),
+        logueado ? fetchAll('clientes', 'n,razon,fantasia,lista,subcanal', ['n']) : Promise.resolve([]),
         fetchAll('precios', 'proveedor,codigo,descripcion,g,m,f', ['proveedor', 'codigo']),
         fetchAll('articulos', 'codigo,unidades', ['codigo'])
       ]);
       datos = {
-        ...vacio, generado: Date.now(), version: ver.v,
+        ...vacio, generado: Date.now(), version: ver.v, conClientes: logueado,
         clientes: cl.map(c => [c.n, c.razon, c.fantasia || '', c.lista, c.subcanal]),
         unidades: Object.fromEntries(ar.map(a => [a.codigo, a.unidades]))
       };
@@ -165,26 +178,33 @@ async function cargarSync() {
 }
 
 /* ---- Login ---- */
-// vista: 'login' | 'pendiente' | null (app normal)
-function showLogin(vista) {
+// El ingreso es opcional: se muestra como ventana sobre la app cuando alguien toca "Ingresar" o algo del detalle.
+// vista: 'login' | 'pendiente' | null (cerrada). aviso: texto opcional arriba del formulario.
+function showLogin(vista, aviso) {
   const v = vista === true ? 'login' : vista;
   $('#login').hidden = !v;
   $('#loginForm').hidden = v !== 'login';
   $('#pendiente').hidden = v !== 'pendiente';
-  $('main#tab-cot').hidden = !!v;
-  if (v) $('#tabs').hidden = true;
+  const av = $('#lAviso'); av.hidden = !aviso; av.textContent = aviso || '';
+  if (v === 'login') setTimeout(() => $('#lEmail').focus(), 50);
 }
+$('#btnIngresar').addEventListener('click', () => showLogin('login'));
+$('#lCerrar').addEventListener('click', () => showLogin(null));
+$('#pCerrar').addEventListener('click', () => showLogin(null));
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#login').hidden) showLogin(null); });
 
 async function initAuth() {
   if (!sb) { aplicarRol(); return true; }
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) { showLogin('login'); return false; }
-  const { data: p } = await sb.from('perfiles').select('rol').eq('id', session.user.id).maybeSingle();
-  if (p?.rol === 'pendiente') { showLogin('pendiente'); return false; } // cuenta creada pero todavía no aprobada
+  if (!session) { logueado = false; aplicarRol(); return true; }   // sin ingresar: Resumen y Cotizador
+  const { data: p } = await sb.from('perfiles').select('rol,nombre').eq('id', session.user.id).maybeSingle();
+  perfilActual = { nombre: p?.nombre || session.user.email, rol: p?.rol || 'vendedor' };
+  if (p?.rol === 'pendiente') {            // cuenta creada pero todavía no aprobada: ve solo lo público
+    logueado = false; aplicarRol(); showLogin('pendiente'); return true;
+  }
+  logueado = true;
   esAdmin = p?.rol === 'admin';
   esJefe = esAdmin || p?.rol === 'jefe';
-  showLogin(null);
-  $('#btnSalir').hidden = false;
   aplicarRol();
   if (esAdmin) cargarVendedores();
   return true;
@@ -460,6 +480,10 @@ function setCliente(c) {
 
 elCli.addEventListener('focus', () => elCli.select());
 elCli.addEventListener('input', () => {
+  if (!clientes.length) {   // sin ingresar no se cargan los clientes: se cotiza con el segmento elegido a mano
+    elInfo.textContent = logueado ? 'Todavía no hay clientes cargados.' : 'Para buscar un cliente tenés que ingresar. Mientras tanto elegí el segmento.';
+    return;
+  }
   ddShow(elCli, searchClients(elCli.value), (b, c) => {
     b.innerHTML = '<span></span><b></b>';
     b.firstChild.textContent = c.n; b.lastChild.textContent = c.rs + (c.nf && c.nf !== c.rs ? ` (${c.nf})` : '');
@@ -628,16 +652,21 @@ $('#btnCopy').addEventListener('click', async e => {
 $('#btnPrint').addEventListener('click', () => print());
 
 /* ================= pestañas y carga de datos ================= */
-document.querySelectorAll('#tabs button[data-tab]').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('#tabs button[data-tab]').forEach(x => { x.classList.toggle('on', x === b); x.toggleAttribute('aria-current', x === b); });
-  document.querySelectorAll('main[id^="tab-"]').forEach(m => { m.hidden = m.id !== 'tab-' + b.dataset.tab; });
+// Cambia de solapa y avisa a los demás módulos (evento "tabcambio") para que carguen sus datos.
+function irA(clave) {
+  document.querySelectorAll('#tabs button[data-tab]').forEach(x => { x.classList.toggle('on', x.dataset.tab === clave); x.toggleAttribute('aria-current', x.dataset.tab === clave); });
+  document.querySelectorAll('main[id^="tab-"]').forEach(m => { m.hidden = m.id !== 'tab-' + clave; });
   scrollTo(0, 0);
+  document.dispatchEvent(new CustomEvent('tabcambio', { detail: clave }));
+}
+document.querySelectorAll('#tabs button[data-tab]').forEach(b => b.addEventListener('click', () => {
+  if (b.classList.contains('bloqueada')) { showLogin('login', 'Para ver el detalle ingresá con tu usuario.'); return; }
+  irA(b.dataset.tab);
 }));
 
-// Apartado "Vendedores": menú de secciones y botón Volver
+// Apartado "Vendedores" (detalle): menú de secciones y botón Volver
 const verSub = id => {
   $('#vMenu').hidden = !!id;
-  $('#vResumen').hidden = !!id;
   document.querySelectorAll('.sub').forEach(s => { s.hidden = s.id !== 'sub-' + id; });
   scrollTo(0, 0);
 };
@@ -701,4 +730,9 @@ $('#fLista').addEventListener('change', e => onFile(e.target, rows_ => {
 }));
 
 /* ================= inicio ================= */
-(async () => { if (await initAuth()) { await loadData(); restore(); } })();
+(async () => {
+  await initAuth();
+  irA(innerWidth >= 1024 ? 'res' : 'cot');   // en la compu abre el resumen; en el celular, el cotizador
+  await loadData();
+  restore();
+})();

@@ -4,7 +4,7 @@
 window.APP_CONFIG = {
   // Calendarios de Google que se muestran en la solapa Calendario (id = email del calendario).
   calendarios: [
-    { id: 'fitnut@fitnutsas.com', color: '#0F766E' },
+    { id: 'fitnut@fitnutsas.com', color: '#14306F' },
     { id: 'es-419.ar#holiday@group.v.calendar.google.com', color: '#D97706' }   // feriados de Argentina
   ],
   url: 'https://ounaoxtsttcsffmtebvz.supabase.co',

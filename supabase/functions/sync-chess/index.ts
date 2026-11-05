@@ -48,6 +48,7 @@ export function mapCliente(c: any) {
     fantasia,
     lista: num(c.idListaPrecio),
     subcanal: num(c.idSubcanalMkt),
+    fecha_alta: txt(c.fechaAlta).slice(0, 10),   // para contar "altas" del mes
   };
 }
 
@@ -196,26 +197,35 @@ export function rutasVigentes(crudas: any[], hoy: string) {
   return { rutas, clientes };
 }
 
-// Agrupa las líneas de comprobantes por día + vendedor + cliente. Las notas de crédito ya vienen en negativo.
-// bultos = cantidadesTotal (bultos con fracción), importe = subtotalNeto (sin IVA, ya bonificado).
-export function agruparVentas(lineas: any[]) {
+// Agrupa las líneas de comprobantes por día + vendedor + cliente + proveedor. Las notas de crédito ya vienen en negativo.
+// bultos = cantidadesTotal (bultos con fracción), importe = subtotalNeto (sin IVA, ya bonificado),
+// kg = bultos × peso por bulto del artículo (pesos: idArticulo → kg por bulto, de /articulos/). Si no hay peso, usa pesoTotal de la línea.
+export function agruparVentas(lineas: any[], pesos: Map<string, number> = new Map()) {
   const por = new Map<string, any>();
   const docs = new Map<string, Set<string>>();
+  let sinPeso = 0;
   for (const l of lineas) {
     if (l.anulado === true || l.anulado === 'SI') continue;
     const fecha = txt(l.fechaComprobate).slice(0, 10), v = num(l.idVendedor), c = num(l.idCliente);
     if (!fecha || v == null || c == null) continue;
-    const k = `${fecha}|${v}|${c}`;
-    const f = por.get(k) ?? { fecha, id_vendedor: v, id_cliente: c, comprobantes: 0, bultos: 0, importe: 0 };
-    f.bultos += num(l.cantidadesTotal) ?? 0;
+    const proveedor = txt(l.proveedor);
+    const k = `${fecha}|${v}|${c}|${proveedor}`;
+    const f = por.get(k) ?? { fecha, id_vendedor: v, id_cliente: c, proveedor, comprobantes: 0, bultos: 0, kg: 0, importe: 0 };
+    const bultos = num(l.cantidadesTotal) ?? 0;
+    const pesoBulto = pesos.get(String(l.idArticulo));
+    let kg = pesoBulto ? bultos * pesoBulto : (num(l.pesoTotal) ?? 0);
+    if (!pesoBulto && !(num(l.pesoTotal)) && bultos !== 0) sinPeso++;
+    f.bultos += bultos;
+    f.kg += kg;
     f.importe += num(l.subtotalNeto) ?? 0;
     const d = docs.get(k) ?? new Set<string>();
     d.add([l.idDocumento, l.letra, l.serie, l.nrodoc].join('-'));
     docs.set(k, d); por.set(k, f);
   }
-  return [...por.entries()]
-    .map(([k, f]) => ({ ...f, comprobantes: docs.get(k)!.size, bultos: Math.round(f.bultos * 1000) / 1000, importe: Math.round(f.importe * 100) / 100 }))
-    .sort((a, b) => `${a.fecha}|${a.id_vendedor}|${a.id_cliente}`.localeCompare(`${b.fecha}|${b.id_vendedor}|${b.id_cliente}`));
+  const filas = [...por.entries()]
+    .map(([k, f]) => ({ ...f, comprobantes: docs.get(k)!.size, bultos: Math.round(f.bultos * 1000) / 1000, kg: Math.round(f.kg * 100) / 100, importe: Math.round(f.importe * 100) / 100 }))
+    .sort((a, b) => `${a.fecha}|${a.id_vendedor}|${a.id_cliente}|${a.proveedor}`.localeCompare(`${b.fecha}|${b.id_vendedor}|${b.id_cliente}|${b.proveedor}`));
+  return Object.assign(filas, { sinPeso });
 }
 
 async function syncGestion(chess: Chess, db: any) {
@@ -235,11 +245,16 @@ async function syncVentas(chess: Chess, db: any, anterior: boolean) {
   const ini = anterior ? new Date(Date.UTC(y, m - 2, 1)) : new Date(Date.UTC(y, m - 1, 1));
   const fin = anterior ? new Date(Date.UTC(y, m - 1, 0)) : null;
   const desde = ini.toISOString().slice(0, 10), hasta = fin ? fin.toISOString().slice(0, 10) : hoy;
+  // Peso por bulto de cada artículo (para pasar bultos a kilos)
+  const arts = await chess.todos('/articulos/', (a) => String(a.idArticulo));
+  const pesos = new Map<string, number>();
+  for (const a of arts) { const p = num(a.pesoBulto); if (p && p > 0) pesos.set(String(a.idArticulo), p); }
   const crudas = await chess.todos('/ventas/', (l) => [l.idEmpresa, l.idDocumento, l.letra, l.serie, l.nrodoc, l.idLinea].join('|'), { fechaDesde: desde, fechaHasta: hasta, detallado: true });
-  const filas = agruparVentas(crudas);
+  const filas = agruparVentas(crudas, pesos);
   if (!filas.length) throw new Error(`Chess devolvió 0 ventas entre ${desde} y ${hasta}: no se pisa la base.`);
   const estado = await guardarSiCambio(db, `ventas_${desde.slice(0, 7)}`, filas, 'reemplazar_ventas', { desde, hasta, filas });
-  return { desde, hasta, lineas: crudas.length, filas: filas.length, estado };
+  const proveedores = [...new Set(filas.map((f: any) => f.proveedor))];
+  return { desde, hasta, lineas: crudas.length, filas: filas.length, articulosConPeso: pesos.size, lineasSinPeso: filas.sinPeso, proveedores, estado };
 }
 
 /* ---------- entrada ---------- */

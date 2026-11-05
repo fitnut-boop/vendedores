@@ -3,33 +3,49 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f766e">
+<meta name="theme-color" content="#0a1a3f">
 <title>App Vendedores</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <header class="top">
-  <h1>Vendedores</h1>
-  <button id="btnSalir" hidden>Salir</button>
+  <div class="marca"><b>FITNUT</b><small>Excelencia comercial</small></div>
+  <div class="centro">
+    <small>Distribuidor oficial</small>
+    <strong>NESTLÉ</strong>
+    <em id="datosAl">Dashboard comercial</em>
+  </div>
+  <div class="usuario">
+    <button id="btnIngresar" type="button" class="pill">Ingresar</button>
+    <div id="chip" class="chip-user" hidden>
+      <span><b id="chipNombre"></b><small id="chipRol"></small></span>
+      <i id="chipIni" class="avatar"></i>
+    </div>
+    <button id="btnSalir" type="button" class="salir" hidden>Salir</button>
+  </div>
 </header>
 
-<!-- Solapas: abajo en el celular, arriba en la computadora -->
-<nav id="tabs" class="tabs" aria-label="Secciones" hidden>
-  <button type="button" data-tab="cot" class="on">
+<!-- Solapas: abajo en el celular, arriba en la computadora. El candado indica que piden ingresar. -->
+<nav id="tabs" class="tabs" aria-label="Secciones">
+  <button type="button" data-tab="res" class="on">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg>
+    <span>Resumen</span>
+  </button>
+  <button type="button" data-tab="cot">
     <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M8.5 7h7M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></svg>
     <span>Cotizador</span>
   </button>
-  <button type="button" data-tab="vend">
+  <button type="button" data-tab="vend" data-lock>
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.4 2.7-5.5 6-5.5s6 2.1 6 5.5"/><circle cx="17.5" cy="9" r="2.4"/><path d="M17.5 14.2c2.4 0 3.9 1.6 3.9 4.3"/></svg>
-    <span>Vendedores</span>
+    <span>Vendedores</span><svg class="lock" viewBox="0 0 24 24" aria-label="requiere ingresar"><rect x="5" y="11" width="14" height="9.5" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
   </button>
-  <button type="button" data-tab="obj">
+  <button type="button" data-tab="obj" data-lock>
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/></svg>
-    <span>Objetivos</span>
+    <span>Objetivos</span><svg class="lock" viewBox="0 0 24 24" aria-label="requiere ingresar"><rect x="5" y="11" width="14" height="9.5" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
   </button>
-  <button type="button" data-tab="cal">
+  <button type="button" data-tab="cal" data-lock>
     <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
-    <span>Calendario</span>
+    <span>Calendario</span><svg class="lock" viewBox="0 0 24 24" aria-label="requiere ingresar"><rect x="5" y="11" width="14" height="9.5" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
   </button>
   <button type="button" data-tab="datos" hidden>
     <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6M4.5 12v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-6"/></svg>
@@ -39,7 +55,9 @@
 
 <div id="login" hidden>
   <form id="loginForm" class="card">
+    <button type="button" id="lCerrar" class="cerrar" aria-label="Cerrar">×</button>
     <h2 id="lTitulo">Ingresar</h2>
+    <p id="lAviso" class="hint" hidden></p>
     <div id="lNombreBox" hidden>
       <label for="lNombre">Nombre y apellido</label>
       <input id="lNombre" autocomplete="name" maxlength="80" style="margin-bottom:10px">
@@ -55,14 +73,63 @@
   </form>
 
   <div id="pendiente" class="card" hidden>
+    <button type="button" id="pCerrar" class="cerrar" aria-label="Cerrar">×</button>
     <h2>Cuenta pendiente de aprobación</h2>
-    <p class="hint">Tu cuenta ya fue creada. El administrador tiene que aprobarla antes de que puedas ver clientes y precios. Avisale y después tocá "Revisar".</p>
+    <p class="hint">Tu cuenta ya fue creada. El administrador tiene que aprobarla antes de que puedas ver el detalle. Mientras tanto podés usar el resumen y el cotizador. Cuando te aprueben, tocá "Revisar".</p>
     <button type="button" id="pRevisar" class="btn" style="width:100%">Revisar</button>
     <button type="button" id="pSalir" class="link">Salir</button>
   </div>
 </div>
 
-<main id="tab-cot">
+<!-- ===== Resumen comercial (público): se completa en tablero.js ===== -->
+<main id="tab-res">
+  <section class="mes-pills" id="mesPills" aria-label="Mes"></section>
+
+  <section class="kpi-strip" id="kpiMes"></section>
+
+  <section class="res-cab">
+    <h2 id="resTitulo">Resumen · Total Fitnut</h2>
+    <p id="resFrase" class="frase"></p>
+    <div class="subtabs" role="tablist" aria-label="Vista del resumen">
+      <button type="button" data-v="res" class="on">Resumen</button>
+      <button type="button" data-v="bees">Bees <small>boceto</small></button>
+    </div>
+  </section>
+
+  <div id="vistaRes">
+    <section class="kcards" id="kCards"></section>
+    <p id="resEstado" class="hint"></p>
+    <div class="paneles">
+      <section class="panel">
+        <div class="panel-cab">
+          <div><h3>Proyección vs objetivo (kg)</h3><small>Proyectado al cierre ÷ objetivo · la línea marca el 100%</small></div>
+          <div class="seg" role="group" aria-label="Proveedor">
+            <button type="button" data-k="total" class="on">Total</button>
+            <button type="button" data-k="nestle">Nestlé</button>
+            <button type="button" data-k="otros">Purina + Hileret</button>
+          </div>
+        </div>
+        <div id="barrasKg" class="tbarras"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-cab"><div><h3>Clientes con compra (CCC)</h3><small id="notaCcc">Real ÷ objetivo · la línea marca el 100%</small></div></div>
+        <div id="barrasCcc" class="tbarras"></div>
+      </section>
+    </div>
+    <p class="leyenda"><i class="d ok"></i> En ritmo ≥ 100% <i class="d med"></i> Cerca ≥ 85% <i class="d bajo"></i> Atrasado</p>
+  </div>
+
+  <div id="vistaBees" hidden>
+    <div class="aviso-boceto"><b>Boceto con datos de ejemplo.</b> Así se va a ver Bees cuando tengamos la información. Los números de acá no son reales.</div>
+    <section class="kcards" id="beesCards"></section>
+    <section class="panel">
+      <div class="panel-cab"><div><h3>Pedidos cargados por Bees</h3><small>% de los pedidos de cada vendedor cargados en Bees · la línea marca el objetivo</small></div></div>
+      <div id="beesBarras" class="tbarras"></div>
+    </section>
+  </div>
+</main>
+
+<main id="tab-cot" hidden>
   <section class="card enc">
     <div class="f">
       <label for="fecha">Fecha</label>
@@ -117,64 +184,29 @@
   </div>
 </main>
 
-<!-- ===== Apartados del jefe (por ahora son el esqueleto: cada uno dice qué va a mostrar) ===== -->
+<!-- ===== Detalle (pide ingresar): rutas con sus clientes, cuentas corrientes, reconocimientos ===== -->
 <main id="tab-vend" hidden>
   <div class="vgrid">
-    <!-- Avance del mes: de acá se desprenden los objetivos de volumen, cobertura y Bees -->
-    <section class="card" id="vResumen">
-      <div class="rs-cab"><h2>Avance del mes</h2><small id="rsMes"></small></div>
-      <p id="rsEstado" class="hint"></p>
-      <div id="rsAros" class="kpis"></div>
-      <div class="rs-sub"><h3 id="rsTit">Volumen por vendedor</h3></div>
-      <div id="rsBarras" class="rs-barras"></div>
-      <button type="button" id="rsDetalle" class="btn">Ver detalle y objetivos</button>
-    </section>
-
     <section class="card" id="vMenu">
-      <h2>Más sobre los vendedores</h2>
+      <h2>Detalle de los vendedores</h2>
+      <p class="hint">El resumen de avance está en la solapa <b>Resumen</b>. Acá está el detalle por cliente.</p>
       <div class="menu">
-        <button type="button" class="item" data-sub="rec"><b>Reconocimientos</b><small>Próximamente</small></button>
+        <button type="button" class="item" data-sub="rut"><b>Rutas de los vendedores</b><small>Rutas de venta y los clientes de cada una</small></button>
         <button type="button" class="item" data-sub="cc"><b>Cuentas corrientes</b><small>Próximamente</small></button>
-        <button type="button" class="item" data-sub="rut"><b>Rutas de los vendedores</b><small>Rutas de venta y sus clientes</small></button>
+        <button type="button" class="item" data-sub="rec"><b>Reconocimientos</b><small>Próximamente</small></button>
       </div>
     </section>
 
     <section class="card sub" id="sub-rec" hidden>
       <button type="button" class="link volver">‹ Volver</button>
       <h2>Reconocimientos</h2>
-      <p class="hint">Pendiente de definir con vos qué se reconoce y cómo se mide (por ejemplo ranking del mes o premios por cumplir objetivos).</p>
+      <p class="hint">Pendiente de definir qué se reconoce y cómo se mide (por ejemplo ranking del mes o premios por cumplir objetivos).</p>
     </section>
 
     <section class="card sub" id="sub-cc" hidden>
       <button type="button" class="link volver">‹ Volver</button>
       <h2>Cuentas corrientes</h2>
       <p class="hint">Va a mostrar la deuda de los clientes de cada vendedor. Chess nos da los comprobantes impagos y los días de deuda vencida de cada cliente. El <b>importe adeudado</b> no sale de la API: hace falta un reporte de cuentas por cobrar de Chess.</p>
-    </section>
-
-    <!-- Detalle de Volumen o de Cobertura (se llena desde gestion.js según el indicador elegido) -->
-    <section class="card sub" id="sub-det" hidden>
-      <button type="button" class="link volver">‹ Volver al avance del mes</button>
-      <h2 id="detTitulo"></h2>
-      <div class="mes">
-        <button type="button" id="mesAnt" aria-label="Mes anterior">‹</button>
-        <b id="mesTxt"></b>
-        <button type="button" id="mesSig" aria-label="Mes siguiente">›</button>
-      </div>
-      <p id="detEstado" class="hint"></p>
-      <div id="detTotal" class="cob-total"></div>
-      <div id="detLista" class="det-lista"></div>
-      <details id="detObj" class="obj" hidden>
-        <summary id="objResumen">Cargar objetivos del mes</summary>
-        <div id="objForm"></div>
-        <button type="button" id="objGuardar" class="btn">Guardar objetivos</button>
-        <p id="objMsg" class="msg" role="status"></p>
-      </details>
-    </section>
-
-    <section class="card sub" id="sub-bees" hidden>
-      <button type="button" class="link volver">‹ Volver al avance del mes</button>
-      <h2>Bees</h2>
-      <p class="hint">Se desarrolla más adelante, cuando sepamos de dónde sale la información de uso de Bees. Va a mostrar el avance de cada vendedor en la carga de pedidos por Bees, con su objetivo, igual que Volumen y Cobertura.</p>
     </section>
 
     <section class="card sub" id="sub-rut" hidden>
@@ -186,9 +218,23 @@
   </div>
 </main>
 
+<!-- ===== Objetivos del mes (los jefes y administradores los cargan; el resumen los usa) ===== -->
 <main id="tab-obj" hidden>
   <section class="card">
-    <h2>Objetivos y concursos</h2>
+    <h2>Objetivos del mes</h2>
+    <div class="mes">
+      <button type="button" id="objAnt" aria-label="Mes anterior">‹</button>
+      <b id="objMes"></b>
+      <button type="button" id="objSig" aria-label="Mes siguiente">›</button>
+    </div>
+    <p class="hint">Cargá los kilos objetivo de cada vendedor. Los clientes con compra se calculan solos (85% de su padrón activo, 70% en Javier y Brenda); si querés fijar otro número, completá la última columna.</p>
+    <div id="objTabla" class="obj-tabla"></div>
+    <button type="button" id="objGuardar" class="btn" hidden>Guardar objetivos</button>
+    <p id="objMsg" class="msg" role="status"></p>
+    <p class="hint" id="objSoloVer" hidden>Solo los jefes y administradores pueden cargar objetivos.</p>
+  </section>
+  <section class="card">
+    <h2>Concursos</h2>
     <p class="hint">Todavía sin definir. Cuando sepamos en qué consisten, lo armamos acá.</p>
   </section>
 </main>
@@ -250,5 +296,6 @@
 <script src="config.js"></script>
 <script src="app.js"></script>
 <script src="gestion.js"></script>
+<script src="tablero.js"></script>
 </body>
 </html>

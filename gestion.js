@@ -206,87 +206,125 @@ async function cargarCuentas() {
   kp.replaceChildren(); lista.replaceChildren();
   if (!sb) { estado.textContent = 'Disponible al conectar con Supabase.'; return; }
   estado.textContent = 'Cargando…';
-  let filas, meta, cfg;
+  let filas, meta, cfg, rutas, rcli, ocultas;
   try {
-    [filas, meta, cfg] = await Promise.all([
+    [filas, meta, cfg, rutas, rcli, ocultas] = await Promise.all([
       fetchAll('cuentas_corrientes', '*', ['tipo', 'codigo']),
       sb.from('cuentas_meta').select('*').maybeSingle().then(r => { if (r.error) throw r.error; return r.data; }),
-      sb.from('vendedores_config').select('id,nombre_mostrar').then(r => r.data || [])
+      sb.from('vendedores_config').select('id,nombre_mostrar').then(r => r.data || []),
+      sb.from('rutas').select('id_sucursal,id_fuerza,id_modo,id_ruta,id_vendedor,dias_visita,periodicidad,semana,anulada').then(r => r.data || []),
+      fetchAll('ruta_clientes', 'id_sucursal,id_fuerza,id_modo,id_ruta,id_cliente', ['id_ruta', 'id_cliente']),
+      sb.from('rutas_ocultas').select('id_ruta').then(r => (r.data || []).map(x => x.id_ruta))
     ]);
   } catch (e) { estado.textContent = msgErr(e); return; }
   if (!filas.length) { estado.textContent = 'No hay cuentas corrientes para mostrar. Si todavía no se cargó el Excel, avisá al administrador; si sos vendedor, el administrador tiene que asignarte tu código de vendedor.'; return; }
   const fecha = meta?.fecha_archivo ? new Date(meta.fecha_archivo + 'T12:00:00').toLocaleDateString('es-AR') : '—';
-  estado.textContent = `Archivo ${meta?.archivo || ''} · datos al ${fecha}. Deuda = saldo de clientes que deben; el saldo a favor se muestra aparte.`;
+  estado.textContent = `Archivo ${meta?.archivo || ''} · datos al ${fecha}. Los clientes están ordenados según el día y la semana de su ruta de visita.`;
 
   const nombreDe = new Map(cfg.map(v => [v.id, v.nombre_mostrar]));
   const titulo = s => String(s || '').toLowerCase().replace(/(^|\s)\S/g, m => m.toUpperCase());
-  const grupos = new Map();
-  const T = { deuda: 0, venc: 0, favor: 0, clientes: 0, mas90: 0 };
+  const nf2 = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const dinero = n => (n < 0 ? '-' : '') + '$ ' + nf2.format(Math.abs(n));
+
+  // Ruta de cada cliente (día y semana de visita), sin las rutas ocultas
+  const vivas = new Map(rutas.filter(r => !r.anulada && !ocultas.includes(r.id_ruta)).map(r => [[r.id_sucursal, r.id_fuerza, r.id_modo, r.id_ruta].join('|'), r]));
+  const rutasDe = new Map();
+  for (const rc of rcli) { const r = vivas.get([rc.id_sucursal, rc.id_fuerza, rc.id_modo, rc.id_ruta].join('|')); if (r) (rutasDe.get(rc.id_cliente) || rutasDe.set(rc.id_cliente, []).get(rc.id_cliente)).push(r); }
+  const diaDe = r => String(r.dias_visita || '').split(/[,\s]+/).find(d => /^[2-7]$/.test(d)) || null;
+  const items = [];
   for (const f of filas) {
-    const saldo = Number(f.saldo) || 0, deuda = Math.max(saldo, 0), venc = Math.min(Math.max(Number(f.vencido) || 0, 0), deuda);
+    const saldo = Number(f.saldo) || 0, venc = Number(f.vencido) || 0;
+    if (saldo === 0 && venc === 0) continue;
     const id = Number(f.id_vendedor) || 0;
-    const nom = id ? (nombreDe.get(id) || titulo(f.vendedor)) : 'Sin vendedor (cuentas CJ)';
-    if (!grupos.has(nom)) grupos.set(nom, { nombre: nom, deuda: 0, venc: 0, favor: 0, clientes: 0, conVenc: 0, edades: EDADES.map(() => 0), filas: [] });
-    const g = grupos.get(nom);
-    g.filas.push(f); g.deuda += deuda; g.venc += venc; g.favor += saldo < 0 ? -saldo : 0;
-    if (deuda > 0) g.clientes++;
-    if (venc > 0) { g.conVenc++; const dias = Number(f.antiguedad) || 0; g.edades[EDADES.findIndex(([, a, b]) => dias >= a && dias <= b)] += venc; if (dias > 90) T.mas90 += venc; }
-    T.deuda += deuda; T.venc += venc; T.favor += saldo < 0 ? -saldo : 0; if (deuda > 0) T.clientes++;
+    const prop = (rutasDe.get(f.codigo) || []).filter(r => f.tipo === 'CL');
+    const r = prop.find(x => x.id_vendedor === id && diaDe(x)) || prop.find(diaDe) || null;
+    const sem = !r ? null : Number(r.periodicidad) > 1 ? 's' + (Number(r.semana) || 1) : 'w';
+    items.push({ f, saldo, venc, atraso: Number(f.antiguedad) || 0, vend: id ? (nombreDe.get(id) || titulo(f.vendedor)) : 'Sin vendedor', idv: id, dia: r ? diaDe(r) : null, sem });
   }
-  const orden = [...grupos.values()].sort((a, b) => b.deuda - a.deuda);
+  const NOM_DIA = { 2: 'Lunes', 3: 'Martes', 4: 'Miércoles', 5: 'Jueves', 6: 'Viernes', 7: 'Sábado' };
+  const vendedores = [...new Set(items.map(i => i.vend))].sort((a, b) => items.filter(i => i.vend === b).reduce((s, i) => s + Math.max(i.saldo, 0), 0) - items.filter(i => i.vend === a).reduce((s, i) => s + Math.max(i.saldo, 0), 0));
+  const hoyDia = String(new Date().getDay() + 1);   // 2 = lunes … 6 = viernes (código de Chess)
+  const E = { vend: vendedores.length === 1 ? vendedores[0] : 'todos', dia: null, sem: null };
 
-  // Indicadores generales
-  const kpi = (et, val, sub, tono) => { const c = el('div', 'kcard sin-medidor' + (tono ? ' ' + tono : '')); c.append(el('small', 'k-et', et), el('div', 'k-val', val), el('div', 'k-lin', sub)); return c; };
-  kp.append(
-    kpi('Deuda total', plataCorta(T.deuda), `${nf0.format(T.clientes)} clientes con deuda`),
-    kpi('Vencida', plataCorta(T.venc), `${nf0.format(T.deuda ? T.venc / T.deuda * 100 : 0)}% de la deuda`, 'rojo'),
-    kpi('No vencida', plataCorta(T.deuda - T.venc), 'Todavía en plazo'),
-    kpi('Vencida hace más de 90 días', plataCorta(T.mas90), `${nf0.format(T.venc ? T.mas90 / T.venc * 100 : 0)}% de lo vencido`, 'rojo'),
-    kpi('Saldos a favor', plataCorta(T.favor), 'Clientes con crédito')
-  );
+  const nomSem = k => (k === 'w' ? 'Semanal' : 'Semana ' + k.slice(1));
+  const ordSem = k => (k === 'w' ? 0 : Number(k.slice(1)));
 
-  // Comparación entre vendedores (barras apiladas: vencida / no vencida)
-  const panel = el('section', 'panel cc-panel'); const cabP = el('div', 'panel-cab'); const t = el('div'); t.append(el('h3', null, 'Deuda por vendedor'), el('small', null, 'Rojo: vencida · Azul: todavía en plazo'));
-  cabP.append(t); panel.append(cabP);
-  const max = Math.max(1, ...orden.map(g => g.deuda));
-  for (const g of orden) {
-    const fila = el('div', 'cc-fila'); const barra = el('div', 'cc-barra');
-    const v = el('i', 'venc'), nv = el('i', 'nov'); v.style.width = (g.venc / max * 100) + '%'; nv.style.width = ((g.deuda - g.venc) / max * 100) + '%';
-    barra.append(v, nv);
-    fila.append(el('span', 'cc-nom', g.nombre), barra, el('b', null, plataCorta(g.deuda)));
-    panel.append(fila);
-  }
-  lista.append(panel);
+  function pintar() {
+    const base = items.filter(i => E.vend === 'todos' || i.vend === E.vend);
+    // Indicadores del vendedor elegido
+    const T = { deuda: 0, venc: 0, favor: 0, cli: 0, m90: 0 };
+    for (const i of base) { if (i.saldo > 0) { T.deuda += i.saldo; T.cli++; } else T.favor += -i.saldo; const v = Math.min(Math.max(i.venc, 0), Math.max(i.saldo, 0)); T.venc += v; if (v > 0 && i.atraso > 90) T.m90 += v; }
+    kp.replaceChildren();
+    const kpi = (et, val, sub, tono) => { const c = el('div', 'kcard sin-medidor' + (tono ? ' ' + tono : '')); c.append(el('small', 'k-et', et), el('div', 'k-val', val), el('div', 'k-lin', sub)); return c; };
+    kp.append(
+      kpi('Deuda total', plataCorta(T.deuda), `${nf0.format(T.cli)} clientes con deuda`),
+      kpi('Vencida', plataCorta(T.venc), `${nf0.format(T.deuda ? T.venc / T.deuda * 100 : 0)}% de la deuda`, 'rojo'),
+      kpi('No vencida', plataCorta(T.deuda - T.venc), 'Todavía en plazo'),
+      kpi('Vencida hace más de 90 días', plataCorta(T.m90), `${nf0.format(T.venc ? T.m90 / T.venc * 100 : 0)}% de lo vencido`, 'rojo'),
+      kpi('Saldos a favor', plataCorta(T.favor), 'Clientes con crédito'));
 
-  // Una tarjeta por vendedor: antigüedad de lo vencido y principales deudores
-  const grid = el('div', 'cc-cards');
-  for (const g of orden) {
-    const c = el('div', 'cc-card'); const cab = el('div', 'rv-head');
-    const tit = el('div'); tit.append(el('b', null, g.nombre), el('small', null, `${nClientes(g.clientes)} con deuda · ${nf0.format(g.conVenc)} con deuda vencida`));
-    const tot = el('div', 'cc-tot'); tot.append(el('b', null, plataCorta(g.deuda)), el('small', null, `${nf0.format(g.deuda ? g.venc / g.deuda * 100 : 0)}% vencida`));
-    cab.append(el('i', 'avatar-sm', iniciales(g.nombre)), tit, tot); c.append(cab);
-
-    const edad = el('div', 'cc-edad'); const totalV = g.venc || 1;
-    g.edades.forEach((m, i) => { if (m > 0) { const s = el('i'); s.style.width = (m / totalV * 100) + '%'; s.style.background = COLOR_EDAD[i]; s.title = `${EDADES[i][0]}: ${plataCorta(m)}`; edad.append(s); } });
-    if (!g.venc) edad.append(el('span', 'cc-ok', 'Sin deuda vencida'));
-    c.append(el('small', 'cc-et', 'Antigüedad de lo vencido'), edad);
-    const leyenda = el('div', 'cc-ley'); EDADES.forEach(([n], i) => { if (g.edades[i] > 0) { const s = el('span'); const d = el('i'); d.style.background = COLOR_EDAD[i]; s.append(d, `${n}: ${plataCorta(g.edades[i])}`); leyenda.append(s); } });
-    c.append(leyenda);
-
-    const top = g.filas.filter(f => Number(f.saldo) > 0).sort((a, b) => Number(b.saldo) - Number(a.saldo));
-    const tabla = el('div', 'cc-top');
-    const fila = f => { const r = el('div', 'cc-cli'); const n = el('span', null, `${f.codigo} · ${f.nombre}`); const d = el('span', 'cc-dias', Number(f.antiguedad) > 0 ? `${f.antiguedad} d` : ''); r.append(n, d, el('b', null, plataCorta(Number(f.saldo)))); return r; };
-    top.slice(0, 5).forEach(f => tabla.append(fila(f)));
-    c.append(el('small', 'cc-et', 'Mayores deudores'), tabla);
-    if (top.length > 5) {
-      const resto = el('div', 'cc-top cc-resto'); resto.hidden = true; top.slice(5).forEach(f => resto.append(fila(f)));
-      const b = el('button', 'link', `Ver los ${top.length - 5} restantes`); b.type = 'button';
-      b.addEventListener('click', () => { resto.hidden = !resto.hidden; b.textContent = resto.hidden ? `Ver los ${top.length - 5} restantes` : 'Ocultar'; });
-      c.append(b, resto);
+    lista.replaceChildren();
+    // Selector de vendedor (solo si se ve más de uno)
+    if (vendedores.length > 1) {
+      const vb = el('div', 'cc-vend');
+      for (const v of ['todos', ...vendedores]) {
+        const b = el('button', 'cc-chip' + (E.vend === v ? ' on' : ''), v === 'todos' ? 'Todos' : v); b.type = 'button';
+        b.addEventListener('click', () => { E.vend = v; E.dia = null; E.sem = null; pintar(); });
+        vb.append(b);
+      }
+      lista.append(vb);
     }
-    grid.append(c);
+    // Pestañas de día (cantidad de clientes con cuenta)
+    const dias = [...new Set(base.map(i => i.dia).filter(Boolean))].sort();
+    const hayRuta = base.some(i => !i.dia);
+    const tabsDia = [...dias.map(d => [d, NOM_DIA[d]]), ...(hayRuta ? [['x', 'Sin ruta']] : [])];
+    if (!tabsDia.length) { lista.append(el('p', 'hint', 'No hay cuentas para mostrar.')); return; }
+    if (!tabsDia.some(([d]) => d === E.dia)) E.dia = (tabsDia.find(([d]) => d === hoyDia) || tabsDia[0])[0];
+    const barraDia = el('div', 'cc-tabs');
+    for (const [d, n] of tabsDia) {
+      const c = base.filter(i => (d === 'x' ? !i.dia : i.dia === d)).length;
+      const b = el('button', 'cc-tab' + (E.dia === d ? ' on' : '')); b.type = 'button'; b.append(n + ' ', el('small', null, String(c)));
+      b.addEventListener('click', () => { E.dia = d; E.sem = null; pintar(); });
+      barraDia.append(b);
+    }
+    lista.append(barraDia);
+
+    const delDia = base.filter(i => (E.dia === 'x' ? !i.dia : i.dia === E.dia));
+    const sems = [...new Set(delDia.map(i => i.sem).filter(Boolean))].sort((a, b) => ordSem(a) - ordSem(b));
+    if (E.dia !== 'x' && sems.length) {
+      if (!sems.includes(E.sem)) E.sem = sems[0];
+      const barraSem = el('div', 'cc-sems');
+      for (const s of sems) {
+        const b = el('button', 'cc-sem' + (E.sem === s ? ' on' : '')); b.type = 'button'; b.append(nomSem(s) + ' ', el('small', null, String(delDia.filter(i => i.sem === s).length)));
+        b.addEventListener('click', () => { E.sem = s; pintar(); });
+        barraSem.append(b);
+      }
+      lista.append(barraSem);
+    }
+    const grupo = (E.dia === 'x' ? delDia : delDia.filter(i => i.sem === E.sem)).sort((a, b) => b.saldo - a.saldo);
+    const sumS = grupo.reduce((s, i) => s + i.saldo, 0), sumV = grupo.reduce((s, i) => s + i.venc, 0);
+    const cab = el('div', 'cc-grupo');
+    cab.append(el('h3', null, E.dia === 'x' ? 'Sin ruta de visita' : `${NOM_DIA[E.dia]} · ${nomSem(E.sem)}`), el('span', null, `${nf0.format(grupo.length)} cliente${grupo.length === 1 ? '' : 's'}`));
+    const t1 = el('span', 'cc-sum'); t1.append('Deuda total ', el('b', null, dinero(sumS)));
+    const t2 = el('span', 'cc-sum'); t2.append('Vencida ', el('b', 'rojo', dinero(sumV)));
+    cab.append(t1, t2); lista.append(cab);
+
+    for (const i of grupo) {
+      const c = el('div', 'cc-cliente'), izq = el('div', 'cc-cl-izq');
+      izq.append(el('b', null, i.f.nombre));
+      const tags = el('div', 'cc-tags');
+      tags.append(el('span', 'tag', '#' + i.f.codigo));
+      if (i.saldo < 0) tags.append(el('span', 'tag ok', 'saldo a favor'));
+      else if (i.venc > 0) tags.append(el('span', 'tag mal', `${nf0.format(i.atraso)} días de atraso`));
+      else tags.append(el('span', 'tag', 'en plazo'));
+      if (E.vend === 'todos') tags.append(el('span', 'tag', i.vend));
+      izq.append(tags);
+      const d1 = el('div', 'cc-monto'); d1.append(el('small', null, 'Deuda total'), el('b', i.saldo < 0 ? 'ok' : '', dinero(i.saldo)));
+      const d2 = el('div', 'cc-monto'); d2.append(el('small', null, 'Vencida'), el('b', i.venc > 0 ? 'rojo' : '', dinero(i.venc)));
+      c.append(izq, d1, d2); lista.append(c);
+    }
   }
-  lista.append(grid);
+  pintar();
 }
 document.querySelectorAll('[data-sub="cc"]').forEach(b => b.addEventListener('click', cargarCuentas));
 

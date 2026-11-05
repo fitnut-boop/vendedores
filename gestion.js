@@ -239,7 +239,7 @@ async function cargarCuentas() {
     const prop = (rutasDe.get(f.codigo) || []).filter(r => f.tipo === 'CL');
     const r = prop.find(x => x.id_vendedor === id && diaDe(x)) || prop.find(diaDe) || null;
     const sem = !r ? null : Number(r.periodicidad) > 1 ? 's' + (Number(r.semana) || 1) : 'w';
-    items.push({ f, saldo, venc, atraso: Number(f.antiguedad) || 0, vend: id ? (nombreDe.get(id) || titulo(f.vendedor)) : 'Sin vendedor', idv: id, dia: r ? diaDe(r) : null, sem });
+    items.push({ f, ruta: r, saldo, venc, atraso: Number(f.antiguedad) || 0, vend: id ? (nombreDe.get(id) || titulo(f.vendedor)) : 'Sin vendedor', idv: id, dia: r ? diaDe(r) : null, sem });
   }
   const NOM_DIA = { 2: 'Lunes', 3: 'Martes', 4: 'Miércoles', 5: 'Jueves', 6: 'Viernes', 7: 'Sábado' };
   const vendedores = [...new Set(items.map(i => i.vend))].sort((a, b) => items.filter(i => i.vend === b).reduce((s, i) => s + Math.max(i.saldo, 0), 0) - items.filter(i => i.vend === a).reduce((s, i) => s + Math.max(i.saldo, 0), 0));
@@ -277,21 +277,23 @@ async function cargarCuentas() {
     // Pestañas de día (cantidad de clientes con cuenta)
     const dias = [...new Set(base.map(i => i.dia).filter(Boolean))].sort();
     const hayRuta = base.some(i => !i.dia);
-    const tabsDia = [...dias.map(d => [d, NOM_DIA[d]]), ...(hayRuta ? [['x', 'Sin ruta']] : [])];
+    // Jefe/supervisor (ve a varios vendedores): día = todos o uno, combinable con el vendedor; sin pestañas de semana.
+    const multi = vendedores.length > 1;
+    const tabsDia = [...(multi ? [['todos', 'Todos los días']] : []), ...dias.map(d => [d, NOM_DIA[d]]), ...(hayRuta ? [['x', 'Sin ruta']] : [])];
     if (!tabsDia.length) { lista.append(el('p', 'hint', 'No hay cuentas para mostrar.')); return; }
-    if (!tabsDia.some(([d]) => d === E.dia)) E.dia = (tabsDia.find(([d]) => d === hoyDia) || tabsDia[0])[0];
+    if (!tabsDia.some(([d]) => d === E.dia)) E.dia = multi ? 'todos' : (tabsDia.find(([d]) => d === hoyDia) || tabsDia[0])[0];
     const barraDia = el('div', 'cc-tabs');
     for (const [d, n] of tabsDia) {
-      const c = base.filter(i => (d === 'x' ? !i.dia : i.dia === d)).length;
+      const c = base.filter(i => (d === 'todos' ? true : d === 'x' ? !i.dia : i.dia === d)).length;
       const b = el('button', 'cc-tab' + (E.dia === d ? ' on' : '')); b.type = 'button'; b.append(n + ' ', el('small', null, String(c)));
       b.addEventListener('click', () => { E.dia = d; E.sem = null; pintar(); });
       barraDia.append(b);
     }
     lista.append(barraDia);
 
-    const delDia = base.filter(i => (E.dia === 'x' ? !i.dia : i.dia === E.dia));
+    const delDia = base.filter(i => (E.dia === 'todos' ? true : E.dia === 'x' ? !i.dia : i.dia === E.dia));
     const sems = [...new Set(delDia.map(i => i.sem).filter(Boolean))].sort((a, b) => ordSem(a) - ordSem(b));
-    if (E.dia !== 'x' && sems.length) {
+    if (!multi && E.dia !== 'x' && sems.length) {
       if (!sems.includes(E.sem)) E.sem = sems[0];
       const barraSem = el('div', 'cc-sems');
       for (const s of sems) {
@@ -301,10 +303,11 @@ async function cargarCuentas() {
       }
       lista.append(barraSem);
     }
-    const grupo = (E.dia === 'x' ? delDia : delDia.filter(i => i.sem === E.sem)).sort((a, b) => b.saldo - a.saldo);
+    const grupo = (multi || E.dia === 'x' ? delDia : delDia.filter(i => i.sem === E.sem)).sort((a, b) => b.saldo - a.saldo);
     const sumS = grupo.reduce((s, i) => s + i.saldo, 0), sumV = grupo.reduce((s, i) => s + i.venc, 0);
     const cab = el('div', 'cc-grupo');
-    cab.append(el('h3', null, E.dia === 'x' ? 'Sin ruta de visita' : `${NOM_DIA[E.dia]} · ${nomSem(E.sem)}`), el('span', null, `${nf0.format(grupo.length)} cliente${grupo.length === 1 ? '' : 's'}`));
+    const quien = E.vend === 'todos' ? 'todos los vendedores' : E.vend;
+    cab.append(el('h3', null, multi ? `${E.dia === 'todos' ? 'Todos los días' : E.dia === 'x' ? 'Sin ruta de visita' : NOM_DIA[E.dia]} · ${quien}` : E.dia === 'x' ? 'Sin ruta de visita' : `${NOM_DIA[E.dia]} · ${nomSem(E.sem)}`), el('span', null, `${nf0.format(grupo.length)} cliente${grupo.length === 1 ? '' : 's'}`));
     const t1 = el('span', 'cc-sum'); t1.append('Deuda total ', el('b', null, dinero(sumS)));
     const t2 = el('span', 'cc-sum'); t2.append('Vencida ', el('b', 'rojo', dinero(sumV)));
     cab.append(t1, t2); lista.append(cab);
@@ -317,7 +320,9 @@ async function cargarCuentas() {
       if (i.saldo < 0) tags.append(el('span', 'tag ok', 'saldo a favor'));
       else if (i.venc > 0) tags.append(el('span', 'tag mal', `${nf0.format(i.atraso)} días de atraso`));
       else tags.append(el('span', 'tag', 'en plazo'));
-      if (E.vend === 'todos') tags.append(el('span', 'tag', i.vend));
+      // Ruta de visita del cliente y número de vendedor
+      tags.append(el('span', 'tag', i.ruta ? `Ruta ${i.ruta.id_ruta}${i.dia ? ' · ' + NOM_DIA[i.dia] : ''}${i.sem && i.sem !== 'w' ? ' · ' + nomSem(i.sem) : ''}` : 'Sin ruta'));
+      if (multi) tags.append(el('span', 'tag', i.idv ? `Vendedor ${i.idv} · ${i.vend}` : i.vend));
       izq.append(tags);
       const d1 = el('div', 'cc-monto'); d1.append(el('small', null, 'Deuda total'), el('b', i.saldo < 0 ? 'ok' : '', dinero(i.saldo)));
       const d2 = el('div', 'cc-monto'); d2.append(el('small', null, 'Vencida'), el('b', i.venc > 0 ? 'rojo' : '', dinero(i.venc)));

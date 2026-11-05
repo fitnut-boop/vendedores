@@ -237,6 +237,20 @@ export function agruparVentas(lineas: any[], pesos: Map<string, number> = new Ma
   return Object.assign(filas, { sinPeso, top });
 }
 
+// Bultos por día + vendedor + cliente + artículo (para los concursos por segmento / SKU)
+export function agruparArticulos(lineas: any[]) {
+  const por = new Map<string, any>();
+  for (const l of lineas) {
+    if (l.anulado === true || l.anulado === 'SI') continue;
+    const fecha = txt(l.fechaComprobate).slice(0, 10), v = num(l.idVendedor), c = num(l.idCliente), a = num(l.idArticulo);
+    if (!fecha || v == null || c == null || a == null) continue;
+    const k = fecha + '|' + v + '|' + c + '|' + a;
+    const f = por.get(k) ?? { fecha, id_vendedor: v, id_cliente: c, id_articulo: a, bultos: 0 };
+    f.bultos += num(l.cantidadesTotal) ?? 0; por.set(k, f);
+  }
+  return [...por.entries()].sort((x, y) => x[0].localeCompare(y[0])).map(([, f]) => ({ ...f, bultos: Math.round(f.bultos * 1000) / 1000 }));
+}
+
 async function syncGestion(chess: Chess, db: any) {
   const vend = rowsOf(await chess.get('/personalComercial/')).map(mapVendedor).filter((v) => v.id != null);
   if (!vend.length) throw new Error('Chess devolvió 0 vendedores: no se pisa la base.');
@@ -260,8 +274,10 @@ async function syncVentas(chess: Chess, db: any, anterior: boolean) {
   const filas = agruparVentas(crudas, pesos);
   if (!filas.length) throw new Error(`Chess devolvió 0 ventas entre ${desde} y ${hasta}: no se pisa la base.`);
   const estado = await guardarSiCambio(db, `ventas_${desde.slice(0, 7)}`, filas, 'reemplazar_ventas', { desde, hasta, filas });
+  const art = agruparArticulos(crudas);
+  const estadoArt = await guardarSiCambio(db, 'ventas_art_' + desde.slice(0, 7), art, 'reemplazar_ventas_art', { desde, hasta, filas: art });
   const proveedores = [...new Set(filas.map((f: any) => f.proveedor))];
-  return { desde, hasta, lineas: crudas.length, filas: filas.length, articulosConPeso: pesos.size, lineasSinPeso: filas.sinPeso, sinPesoTop: filas.top, proveedores, estado };
+  return { desde, hasta, lineas: crudas.length, filas: filas.length, articulosConPeso: pesos.size, lineasSinPeso: filas.sinPeso, sinPesoTop: filas.top, proveedores, estado, articulos: art.length, estadoArt };
 }
 
 /* ---------- entrada ---------- */

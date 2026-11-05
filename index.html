@@ -193,14 +193,20 @@
       <div class="menu">
         <button type="button" class="item" data-sub="rut"><b>Rutas de los vendedores</b><small>Grilla de días y semanas con la cobertura de cada ruta</small></button>
         <button type="button" class="item" data-sub="cc"><b>Cuentas corrientes</b><small>Deuda de los clientes de cada vendedor</small></button>
-        <button type="button" class="item" data-sub="rec"><b>Reconocimientos</b><small>Próximamente</small></button>
+        <button type="button" class="item" data-sub="rec"><b>Reconocimientos</b><small>Podio del mes y lo mejor de cada vendedor</small></button>
       </div>
     </section>
 
     <section class="card sub" id="sub-rec" hidden>
       <button type="button" class="link volver">‹ Volver</button>
       <h2>Reconocimientos</h2>
-      <p class="hint">Pendiente de definir qué se reconoce y cómo se mide (por ejemplo ranking del mes o premios por cumplir objetivos).</p>
+      <div class="mes">
+        <button type="button" id="recAnt" aria-label="Mes anterior">‹</button>
+        <b id="recMes"></b>
+        <button type="button" id="recSig" aria-label="Mes siguiente">›</button>
+      </div>
+      <p id="recEstado" class="hint"></p>
+      <div id="recLista"></div>
     </section>
 
     <section class="card sub" id="sub-cc" hidden>
@@ -313,5 +319,6 @@
 <script src="app.js"></script>
 <script src="gestion.js"></script>
 <script src="tablero.js"></script>
+<script src="reconocimientos.js"></script>
 </body>
 </html>

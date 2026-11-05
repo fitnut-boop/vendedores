@@ -191,7 +191,8 @@ export function rutasVigentes(crudas: any[], hoy: string) {
   const rutas: any[] = [], clientes: any[] = [];
   for (const r of mejor.values()) {
     const base = { id_sucursal: num(r.idSucursal), id_fuerza: num(r.idFuerzaVentas), id_modo: txt(r.idModoAtencion), id_ruta: num(r.idRuta) };
-    rutas.push({ ...base, descripcion: txt(r.desRuta), id_vendedor: num(r.idPersonal), dias_visita: txt(r.diasVisita), anulada: false });
+    rutas.push({ ...base, descripcion: txt(r.desRuta), id_vendedor: num(r.idPersonal), dias_visita: txt(r.diasVisita),
+      periodicidad: num(r.periodicidadVisita), semana: num(r.semanaVisita), anulada: false });   // periodicidad 1 = semanal; 2+ = cada N semanas (semana = cuál)
     for (const c of Array.isArray(r.eClientesRutas) ? r.eClientesRutas : []) if (c.idCliente != null) clientes.push({ ...base, id_cliente: num(c.idCliente) });
   }
   return { rutas, clientes };
@@ -204,6 +205,7 @@ export function agruparVentas(lineas: any[], pesos: Map<string, number> = new Ma
   const por = new Map<string, any>();
   const docs = new Map<string, Set<string>>();
   let sinPeso = 0;
+  const sinPesoArt = new Map<string, any>();
   for (const l of lineas) {
     if (l.anulado === true || l.anulado === 'SI') continue;
     const fecha = txt(l.fechaComprobate).slice(0, 10), v = num(l.idVendedor), c = num(l.idCliente);
@@ -212,9 +214,15 @@ export function agruparVentas(lineas: any[], pesos: Map<string, number> = new Ma
     const k = `${fecha}|${v}|${c}|${proveedor}`;
     const f = por.get(k) ?? { fecha, id_vendedor: v, id_cliente: c, proveedor, comprobantes: 0, bultos: 0, kg: 0, importe: 0 };
     const bultos = num(l.cantidadesTotal) ?? 0;
-    const pesoBulto = pesos.get(String(l.idArticulo));
-    let kg = pesoBulto ? bultos * pesoBulto : (num(l.pesoTotal) ?? 0);
-    if (!pesoBulto && !(num(l.pesoTotal)) && bultos !== 0) sinPeso++;
+    const pesoBulto = num(l.peso) || pesos.get(String(l.idArticulo));   // la línea de venta trae "peso" = kg por bulto
+    // unimedtotal = cantidad en unidad de medida (kg/litros) de la línea; es la fuente más completa. Fallbacks: bultos × peso, pesoTotal.
+    const um = num(l.unimedtotal);
+    let kg = um != null && (um !== 0 || bultos === 0) ? um : pesoBulto ? bultos * pesoBulto : (num(l.pesoTotal) ?? 0);
+    if (!(um) && !pesoBulto && !(num(l.pesoTotal)) && bultos !== 0) {
+      sinPeso++;
+      const d = sinPesoArt.get(String(l.idArticulo)) ?? { art: l.dsArticulo, prov: l.proveedor, lineas: 0, bultos: 0, unimedtotal: 0, ejemplo: [l.cantidadesTotal, l.unimedtotal, l.unimedcargo, l.peso, l.pesoTotal, l.unidadesSolicitadas] };
+      d.lineas++; d.bultos += bultos; d.unimedtotal += num(l.unimedtotal) ?? 0; sinPesoArt.set(String(l.idArticulo), d);
+    }
     f.bultos += bultos;
     f.kg += kg;
     f.importe += num(l.subtotalNeto) ?? 0;
@@ -225,7 +233,8 @@ export function agruparVentas(lineas: any[], pesos: Map<string, number> = new Ma
   const filas = [...por.entries()]
     .map(([k, f]) => ({ ...f, comprobantes: docs.get(k)!.size, bultos: Math.round(f.bultos * 1000) / 1000, kg: Math.round(f.kg * 100) / 100, importe: Math.round(f.importe * 100) / 100 }))
     .sort((a, b) => `${a.fecha}|${a.id_vendedor}|${a.id_cliente}|${a.proveedor}`.localeCompare(`${b.fecha}|${b.id_vendedor}|${b.id_cliente}|${b.proveedor}`));
-  return Object.assign(filas, { sinPeso });
+  const top = [...sinPesoArt.entries()].sort((a, b) => b[1].bultos - a[1].bultos).slice(0, 12).map(([id, d]) => ({ id, ...d }));
+  return Object.assign(filas, { sinPeso, top });
 }
 
 async function syncGestion(chess: Chess, db: any) {
@@ -246,15 +255,13 @@ async function syncVentas(chess: Chess, db: any, anterior: boolean) {
   const fin = anterior ? new Date(Date.UTC(y, m - 1, 0)) : null;
   const desde = ini.toISOString().slice(0, 10), hasta = fin ? fin.toISOString().slice(0, 10) : hoy;
   // Peso por bulto de cada artículo (para pasar bultos a kilos)
-  const arts = await chess.todos('/articulos/', (a) => String(a.idArticulo));
-  const pesos = new Map<string, number>();
-  for (const a of arts) { const p = num(a.pesoBulto); if (p && p > 0) pesos.set(String(a.idArticulo), p); }
+  const pesos = new Map<string, number>();   // el peso por bulto viene en cada línea de venta (campo "peso")
   const crudas = await chess.todos('/ventas/', (l) => [l.idEmpresa, l.idDocumento, l.letra, l.serie, l.nrodoc, l.idLinea].join('|'), { fechaDesde: desde, fechaHasta: hasta, detallado: true });
   const filas = agruparVentas(crudas, pesos);
   if (!filas.length) throw new Error(`Chess devolvió 0 ventas entre ${desde} y ${hasta}: no se pisa la base.`);
   const estado = await guardarSiCambio(db, `ventas_${desde.slice(0, 7)}`, filas, 'reemplazar_ventas', { desde, hasta, filas });
   const proveedores = [...new Set(filas.map((f: any) => f.proveedor))];
-  return { desde, hasta, lineas: crudas.length, filas: filas.length, articulosConPeso: pesos.size, lineasSinPeso: filas.sinPeso, proveedores, estado };
+  return { desde, hasta, lineas: crudas.length, filas: filas.length, articulosConPeso: pesos.size, lineasSinPeso: filas.sinPeso, sinPesoTop: filas.top, proveedores, estado };
 }
 
 /* ---------- entrada ---------- */

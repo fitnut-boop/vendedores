@@ -272,8 +272,9 @@ $('#pRevisar').addEventListener('click', () => location.reload());
 async function cargarVendedores() {
   if (!sb || !esAdmin) return;
   const cont = $('#listaVend');
-  const { data, error } = await sb.from('perfiles').select('id,nombre,email,rol,creado').order('creado', { ascending: false });
+  const { data, error } = await sb.from('perfiles').select('id,nombre,email,rol,creado,id_vendedor').order('creado', { ascending: false });
   if (error) { cont.textContent = 'No se pudo cargar la lista de vendedores.'; return; }
+  const { data: cfgV } = await sb.from('vendedores_config').select('id,nombre_mostrar').order('id');   // códigos de vendedor de Chess
   $('#cardVend').hidden = false;
   const pend = data.filter(u => u.rol === 'pendiente'), resto = data.filter(u => u.rol !== 'pendiente');
   const insignia = $('[data-tab="datos"] .badge'); insignia.textContent = pend.length; insignia.hidden = !pend.length;
@@ -309,7 +310,20 @@ async function cargarVendedores() {
     boton('Rechazar', 'ghost danger', () => accion('eliminar_usuario', u.id, `¿Rechazar y eliminar la cuenta de ${u.email}?`)),
   ]));
   const h2 = document.createElement('h3'); h2.textContent = 'Con acceso'; cont.append(h2);
+  // Selector del vendedor de Chess al que corresponde la cuenta: define qué cuentas corrientes ve (jefes y admin ven todas)
+  const selVend = u => {
+    const s = document.createElement('select'); s.className = 'sel-vend'; s.title = 'Vendedor de Chess de esta cuenta';
+    s.append(new Option('Sin vendedor asignado', ''));
+    for (const v of cfgV || []) s.append(new Option(v.nombre_mostrar, v.id));
+    s.value = u.id_vendedor ?? '';
+    s.onchange = async () => {
+      const { error: err } = await sb.rpc('asignar_vendedor', { uid: u.id, vendedor: s.value === '' ? null : Number(s.value) });
+      if (err) { alert('No se pudo asignar: ' + err.message); cargarVendedores(); }
+    };
+    return s;
+  };
   for (const u of resto) cont.append(fila(u, u.rol === 'admin' ? [] : [
+    selVend(u),
     u.rol === 'jefe'
       ? boton('Quitar jefe', 'ghost', () => cambiarRol(u, 'vendedor', `¿Dejar a ${u.nombre || u.email} como vendedor común?`))
       : boton('Hacer jefe', 'ghost', () => cambiarRol(u, 'jefe', `¿Dar a ${u.nombre || u.email} permiso de jefe? Podrá cargar los objetivos de los vendedores.`)),
@@ -689,7 +703,7 @@ async function onFile(input, handler) {
   if (!f) return;
   try {
     msg('Procesando…');
-    const res = await handler(await readSheet(f));
+    const res = await handler(await readSheet(f), f);
     if (sb) {
       msg('Subiendo a la base de datos…');
       const { error } = await sb.rpc(res.rpc[0], res.rpc[1]);
@@ -727,6 +741,42 @@ $('#fLista').addEventListener('change', e => onFile(e.target, rows_ => {
     texto: `Lista de ${prov} cargada: ${items.length} productos.`,
     rpc: ['reemplazar_lista', { prov, filas: items.map(([codigo, descripcion, g, m, f]) => ({ codigo, descripcion, g, m, f })) }]
   };
+}));
+
+// ---- Cuentas corrientes: Excel de gestión de cobranzas (columnas: Prioridad, Sucursal, Tipo, Código, Nombre, Comprobantes,
+// Saldo, Vencido, No vencido, Vendedor, Descripción, Ultima gestión, Antiguedad deuda, Pend. Conciliar) ----
+function fechaIso(v) {
+  if (v == null || v === '') return '';
+  if (typeof v === 'number') return new Date(Math.round((v - 25569) * 86400 * 1000)).toISOString().slice(0, 10);   // número de serie de Excel
+  const m = String(v).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return `${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`;                                     // M/D/AAAA, como viene en el Excel
+  const d = new Date(v); return isNaN(d) ? '' : d.toISOString().slice(0, 10);
+}
+function parseCuentas(rows) {
+  const h = rows.findIndex(r => r.some(c => norm(c) === 'prioridad') && r.some(c => norm(c) === 'saldo'));
+  if (h < 0) throw new Error('No encontré las columnas Prioridad y Saldo del Excel de cobranzas.');
+  const hdr = rows[h].map(norm), col = (n, alt) => (hdr.indexOf(n) >= 0 ? hdr.indexOf(n) : alt);
+  const c = { p: col('prioridad', 0), suc: col('sucursal', 1), t: col('tipo', 2), cod: col('codigo', 3), nom: col('nombre', 4), comp: col('comprobantes', 5),
+    sal: col('saldo', 6), ven: col('vencido', 7), nov: col('no vencido', 8), vend: col('vendedor', 9), desc: col('descripcion', 10),
+    ult: col('ultima gestion', 11), ant: col('antiguedad deuda', 12), pc: col('pend. conciliar', 13) };
+  const n = v => { const x = parseNum(v); return Number.isFinite(x) ? x : 0; };
+  const out = [];
+  for (const r of rows.slice(h + 1)) {
+    const cod = parseInt(r[c.cod], 10);
+    if (!Number.isFinite(cod) || !Number.isFinite(parseInt(r[c.p], 10))) continue;
+    out.push({ prioridad: parseInt(r[c.p], 10), sucursal: String(r[c.suc] ?? '').trim(), tipo: String(r[c.t] ?? '').trim(), codigo: cod,
+      nombre: String(r[c.nom] ?? '').trim(), comprobantes: parseInt(r[c.comp], 10) || 0, saldo: n(r[c.sal]), vencido: n(r[c.ven]), no_vencido: n(r[c.nov]),
+      id_vendedor: parseInt(r[c.vend], 10) || 0, vendedor: String(r[c.desc] ?? '').trim(), ultima_gestion: fechaIso(r[c.ult]),
+      antiguedad: parseInt(r[c.ant], 10) || 0, pend_conciliar: n(r[c.pc]) });
+  }
+  return out;
+}
+$('#fCuentas').addEventListener('change', e => onFile(e.target, (rows_, f) => {
+  const filas = parseCuentas(rows_);
+  if (!filas.length) throw new Error('No encontré cuentas en el archivo.');
+  const nom = f.name.match(/(\d{2})-(\d{2})-(\d{4})/);
+  const fecha = nom ? `${nom[3]}-${nom[2]}-${nom[1]}` : new Date(f.lastModified).toISOString().slice(0, 10);
+  return { texto: `Cuentas corrientes cargadas: ${filas.length} cuentas (archivo ${f.name}, al ${fecha}).`, rpc: ['cargar_cuentas', { archivo: f.name, fecha, filas }] };
 }));
 
 /* ================= inicio ================= */

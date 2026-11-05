@@ -191,8 +191,8 @@
       <h2>Detalle de los vendedores</h2>
       <p class="hint">El resumen de avance está en la solapa <b>Resumen</b>. Acá está el detalle por cliente.</p>
       <div class="menu">
-        <button type="button" class="item" data-sub="rut"><b>Rutas de los vendedores</b><small>Rutas de venta y los clientes de cada una</small></button>
-        <button type="button" class="item" data-sub="cc"><b>Cuentas corrientes</b><small>Próximamente</small></button>
+        <button type="button" class="item" data-sub="rut"><b>Rutas de los vendedores</b><small>Grilla de días y semanas con la cobertura de cada ruta</small></button>
+        <button type="button" class="item" data-sub="cc"><b>Cuentas corrientes</b><small>Deuda de los clientes de cada vendedor</small></button>
         <button type="button" class="item" data-sub="rec"><b>Reconocimientos</b><small>Próximamente</small></button>
       </div>
     </section>
@@ -206,14 +206,22 @@
     <section class="card sub" id="sub-cc" hidden>
       <button type="button" class="link volver">‹ Volver</button>
       <h2>Cuentas corrientes</h2>
-      <p class="hint">Va a mostrar la deuda de los clientes de cada vendedor. Chess nos da los comprobantes impagos y los días de deuda vencida de cada cliente. El <b>importe adeudado</b> no sale de la API: hace falta un reporte de cuentas por cobrar de Chess.</p>
+      <p id="ccEstado" class="hint"></p>
+      <div id="ccKpis" class="kcards cc-kpis"></div>
+      <div id="ccLista" class="cc-lista"></div>
     </section>
 
     <section class="card sub" id="sub-rut" hidden>
       <button type="button" class="link volver">‹ Volver</button>
       <h2>Rutas de los vendedores</h2>
+      <div class="mes">
+        <button type="button" id="rutAnt" aria-label="Mes anterior">‹</button>
+        <b id="rutMes"></b>
+        <button type="button" id="rutSig" aria-label="Mes siguiente">›</button>
+      </div>
       <p id="rutEstado" class="hint"></p>
-      <div id="rutLista" class="vend"></div>
+      <div id="rutLista" class="rutas-grid"></div>
+      <div id="rutDetalle" class="rut-det" hidden></div>
     </section>
   </div>
 </main>
@@ -229,7 +237,10 @@
     </div>
     <p class="hint">Cargá los kilos objetivo de cada vendedor. Los clientes con compra se calculan solos (85% de su padrón activo, 70% en Javier y Brenda); si querés fijar otro número, completá la última columna.</p>
     <div id="objTabla" class="obj-tabla"></div>
-    <button type="button" id="objGuardar" class="btn" hidden>Guardar objetivos</button>
+    <div class="obj-acc">
+      <button type="button" id="objCopiar" class="btn ghost" hidden>Copiar los del mes anterior</button>
+      <button type="button" id="objGuardar" class="btn" hidden>Guardar objetivos</button>
+    </div>
     <p id="objMsg" class="msg" role="status"></p>
     <p class="hint" id="objSoloVer" hidden>Solo los jefes y administradores pueden cargar objetivos.</p>
   </section>
@@ -285,6 +296,11 @@
       <input type="text" id="provNombre" placeholder="Proveedor (ej. Nestlé)" value="Nestlé">
       <input type="file" id="fLista" accept=".xlsx,.xls">
     </div>
+
+    <label class="file">
+      <span>4. Cuentas corrientes <small>(el Excel más reciente de la carpeta de cobranzas, por_prioridad_dia_….xlsx)</small></span>
+      <input type="file" id="fCuentas" accept=".xlsx,.xls">
+    </label>
 
     <p id="msg" class="msg" role="status"></p>
   </section>

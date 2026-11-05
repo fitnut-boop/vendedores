@@ -327,7 +327,60 @@ body.anon .tabs button.bloqueada{opacity:.72}
 #login .card{position:relative}
 .cerrar{position:absolute;top:6px;right:8px;width:40px;height:40px;border:0;background:none;font-size:28px;line-height:1;color:var(--muted);cursor:pointer}
 
+/* Rutas: grilla de días × semanas */
+.rutas-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;margin-top:8px}
+.rv-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
+.rv-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.rv-head b{display:block;font:600 19px Georgia,'Times New Roman',serif}
+.rv-head small{color:var(--muted)}
+.avatar-sm{flex-shrink:0;width:42px;height:42px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font:600 15px Georgia,serif;font-style:normal}
+.rgrid{display:grid;gap:6px;align-items:stretch}
+.rg-dia{font-size:11px;letter-spacing:.14em;color:var(--muted);text-align:center;font-weight:700;padding-bottom:2px}
+.rg-fila{font-size:11px;color:var(--muted);font-weight:700;display:flex;align-items:center}
+.rg-celda{display:flex;flex-direction:column;gap:4px;min-height:82px;border-radius:8px;background:repeating-linear-gradient(135deg,transparent 0 5px,rgba(120,140,180,.16) 5px 7px)}
+.rg-ruta{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:0;border-radius:8px;padding:6px 2px;color:#fff;cursor:pointer;line-height:1.15;min-height:82px}
+.rg-ruta small{font-size:10px;opacity:.85;color:inherit}
+.rg-ruta b{font:700 22px system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.rg-ruta em{font-style:normal;font-size:12px;font-weight:600}
+.rg-ruta.alta{background:#0f2a63}.rg-ruta.media{background:#4a6aa8}.rg-ruta.baja{background:#a9b8d8;color:#12254f}.rg-ruta.vacia{background:#d8deec;color:#5b6780}
+.rg-ruta:hover,.rg-ruta:focus-visible{outline:3px solid #7aa7ff;outline-offset:1px}
+.rg-sin{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.rg-sin .rg-ruta{flex:0 0 74px}
+.rut-det{margin-top:14px;background:var(--card);border:2px solid var(--brand);border-radius:14px;padding:16px 18px}
+.rut-det h3{margin:0 0 10px;font:600 18px Georgia,'Times New Roman',serif}
+.rd-datos{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-bottom:12px}
+.rd-datos div{background:var(--bg);border-radius:10px;padding:8px 10px}
+.rd-datos span{display:block;font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.rd-datos b{font-size:20px}
+
+/* Cuentas corrientes */
+.cc-kpis{margin:8px 0 4px}
+.kcard.rojo{border-left-color:var(--bajo)}.kcard.rojo .k-val{color:var(--bajo)}
+.cc-panel{margin-top:14px}
+.cc-fila{display:grid;grid-template-columns:92px minmax(0,1fr) 78px;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.cc-nom{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cc-barra{display:flex;height:18px;background:var(--line);border-radius:6px;overflow:hidden}
+.cc-barra i{display:block;height:100%}.cc-barra i.venc{background:var(--bajo)}.cc-barra i.nov{background:var(--azul)}
+.cc-fila b{text-align:right;font-variant-numeric:tabular-nums}
+.cc-cards{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;margin-top:14px}
+.cc-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
+.cc-tot{margin-left:auto;text-align:right}.cc-tot b{display:block;font:600 20px Georgia,'Times New Roman',serif}.cc-tot small{color:var(--bajo)}
+.cc-et{display:block;margin:12px 0 4px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.cc-edad{display:flex;height:14px;border-radius:5px;overflow:hidden;background:var(--line)}
+.cc-edad i{display:block;height:100%}
+.cc-ok{font-size:12px;color:var(--ok);padding-left:6px;line-height:14px}
+.cc-ley{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:12px;color:var(--muted)}
+.cc-ley i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}
+.cc-cli{display:grid;grid-template-columns:minmax(0,1fr) 44px 78px;gap:8px;padding:5px 0;border-top:1px dashed var(--line);font-size:14px}
+.cc-cli span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cc-dias{color:var(--muted);text-align:right}.cc-cli b{text-align:right;font-variant-numeric:tabular-nums}
+.cc-resto{max-height:320px;overflow:auto}
+
+.sel-vend{max-width:170px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:inherit;font:inherit;font-size:13px}
+
 /* Objetivos */
+.obj-acc{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.obj-acc .btn{margin-top:0!important}
 .obj-tabla{overflow-x:auto}
 .obj-tabla .orow{min-width:600px;grid-template-columns:minmax(90px,1.1fr) repeat(4,minmax(0,1fr))}
 .o-tot{font-weight:700;text-align:right;padding-right:6px}.o-nom{font-weight:700}
@@ -358,6 +411,9 @@ body.anon .tabs button.bloqueada{opacity:.72}
   .top{padding:14px 36px}
   .tabs{top:0}
   .kcards{grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+  .rutas-grid{grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:16px}
+  .cc-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  .rg-ruta,.rg-celda{min-height:92px}.rg-ruta b{font-size:25px}
   #beesCards{grid-template-columns:repeat(3,minmax(0,1fr))}
   .paneles{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px}
   .panel{padding:20px 22px 14px}

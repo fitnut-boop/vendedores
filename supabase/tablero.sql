@@ -27,15 +27,16 @@ alter table vendedores_config enable row level security;
 drop policy if exists leer_vend_config on vendedores_config;
 create policy leer_vend_config on vendedores_config for select to authenticated using (es_vendedor());
 
-insert into vendedores_config (id, nombre_mostrar, pct_cobertura, en_tablero, orden) values
-  (1, 'Javier',    70, true, 1),
-  (2, 'Virginia',  85, true, 2),
-  (3, 'Andrés',    85, true, 3),
-  (4, 'Germán',    85, true, 4),
-  (5, 'Brenda',    70, true, 5),
-  (7, 'Gabriela',  85, true, 6),
-  (8, 'Tomás',     85, true, 7),
-  (6, 'Supervisor', 85, true, 9)
+-- Se vinculan POR NOMBRE con los vendedores que trae Chess (no se adivinan los códigos). Brenda va con el resto (85%); Javier 70%.
+delete from vendedores_config where true;
+insert into vendedores_config (id, nombre_mostrar, pct_cobertura, en_tablero, orden)
+select v.id, m.mostrar, m.pct, true, m.orden
+from vendedores v
+join (values
+  ('JAVIER', 'Javier', 70, 1), ('VIRGINIA', 'Virginia', 85, 2), ('ANDRES', 'Andrés', 85, 3), ('GERMAN', 'Germán', 85, 4),
+  ('BRENDA', 'Brenda', 85, 5), ('GABRIELA', 'Gabriela', 85, 6), ('TOMAS', 'Tomás', 85, 7), ('SUPERVISOR', 'Supervisor', 85, 9)
+) as m(clave, mostrar, pct, orden)
+  on upper(translate(v.nombre, 'ÁÉÍÓÚáéíóú', 'AEIOUaeiou')) like m.clave || '%'
 on conflict (id) do nothing;
 
 -- ===== Feriados y días no laborables (para contar días hábiles: lunes a viernes menos estas fechas) =====
@@ -47,20 +48,27 @@ alter table feriados enable row level security;
 drop policy if exists feriados_publico on feriados;
 create policy feriados_publico on feriados for select to anon, authenticated using (true);
 
+-- Feriados nacionales 2026 (Ley 27.399). Los 3 "días no laborables con fines turísticos" (lunes 23/3, viernes 10/7 y lunes 7/12;
+-- Resolución 164/2025) NO se cargan: en el sector privado cada empresa decide si trabaja. Para no contarlos como hábiles,
+-- agregarlos acá: insert into feriados values ('2026-12-07', 'Día no laborable con fines turísticos');
 insert into feriados (fecha, descripcion) values
   ('2026-01-01', 'Año Nuevo'),
   ('2026-02-16', 'Carnaval'), ('2026-02-17', 'Carnaval'),
-  ('2026-03-23', 'Día no laborable con fines turísticos'), ('2026-03-24', 'Día de la Memoria'),
-  ('2026-04-02', 'Día de Malvinas'), ('2026-04-03', 'Viernes Santo'),
+  ('2026-03-24', 'Día Nacional de la Memoria'),
+  ('2026-04-02', 'Día del Veterano y de los Caídos en Malvinas'), ('2026-04-03', 'Viernes Santo'),
   ('2026-05-01', 'Día del Trabajador'), ('2026-05-25', 'Revolución de Mayo'),
-  ('2026-06-15', 'Paso a la Inmortalidad de Güemes (trasladado)'), ('2026-06-20', 'Día de la Bandera'),
-  ('2026-07-09', 'Día de la Independencia'), ('2026-07-10', 'Día no laborable con fines turísticos'),
-  ('2026-08-17', 'Paso a la Inmortalidad de San Martín'),
+  ('2026-06-15', 'Paso a la Inmortalidad del Gral. Güemes (trasladado del 17/6)'), ('2026-06-20', 'Paso a la Inmortalidad del Gral. Belgrano'),
+  ('2026-07-09', 'Día de la Independencia'),
+  ('2026-08-17', 'Paso a la Inmortalidad del Gral. San Martín'),
   ('2026-10-12', 'Día del Respeto a la Diversidad Cultural'),
-  ('2026-11-23', 'Día de la Soberanía Nacional (trasladado)'),
-  ('2026-12-07', 'Día no laborable con fines turísticos'), ('2026-12-08', 'Inmaculada Concepción'),
+  ('2026-11-09', 'Visita del Papa León XIV (feriado nacional, Decreto 1103/2026)'),
+  ('2026-11-10', 'Visita del Papa León XIV (feriado en Córdoba y CABA, Decreto 1103/2026)'),
+  ('2026-11-23', 'Día de la Soberanía Nacional (trasladado del 20/11)'),
+  ('2026-12-08', 'Inmaculada Concepción de María'),
   ('2026-12-25', 'Navidad')
 on conflict (fecha) do nothing;
+-- Si ya se había cargado una versión anterior con los días turísticos, se sacan:
+delete from feriados where fecha in ('2026-03-23', '2026-07-10', '2026-12-07');
 
 -- ===== Lo mínimo que necesita el cotizador sin contraseña: precios y unidades por bulto =====
 drop policy if exists precios_publico   on precios;
@@ -105,7 +113,7 @@ language sql stable security definer set search_path = public as $$
   with v as (
     select vd.id_vendedor,
            sum(vd.kg) as kg_total,
-           sum(vd.kg) filter (where upper(vd.proveedor) like '%NESTLE%' or upper(vd.proveedor) like '%NESTLÉ%') as kg_nestle,
+           sum(vd.kg) filter (where upper(vd.proveedor) like '%NESTLE%' or upper(vd.proveedor) like '%NESTLÉ%' or upper(vd.proveedor) like '%PROFESSIONAL%') as kg_nestle,   -- Nestlé Professional cuenta como Nestlé
            sum(vd.importe) as importe,
            count(distinct vd.id_cliente) filter (where vd.importe > 0 or vd.kg > 0 or vd.bultos > 0) as con_compra
     from ventas_dia vd where vd.fecha between desde and hasta group by vd.id_vendedor

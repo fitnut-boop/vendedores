@@ -227,7 +227,10 @@ $('#lToggle').addEventListener('click', () => setModoRegistro(!modoRegistro));
 
 $('#loginForm').addEventListener('submit', async e => {
   e.preventDefault();
-  const m = $('#lMsg'), email = $('#lEmail').value.trim(), password = $('#lPass').value;
+  const m = $('#lMsg'), password = $('#lPass').value;
+  let email = $('#lEmail').value.trim();
+  // Ingreso con usuario (sin mail): "Matías Cuello" → matiascuello@usuarios.fitnut.app
+  if (!modoRegistro && !email.includes('@')) email = email.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '').toLowerCase() + '@usuarios.fitnut.app';
   const fallo = t => { m.className = 'msg err'; m.textContent = t; };
   m.className = 'msg';
 

@@ -62,10 +62,10 @@
       <label for="lNombre">Nombre y apellido</label>
       <input id="lNombre" autocomplete="name" maxlength="80" style="margin-bottom:10px">
     </div>
-    <label for="lEmail">Email</label>
-    <input id="lEmail" type="email" autocomplete="username" required>
+    <label for="lEmail">Usuario o email</label>
+    <input id="lEmail" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required>
     <label for="lPass" style="margin-top:10px">Contraseña</label>
-    <input id="lPass" type="password" autocomplete="current-password" required minlength="8">
+    <input id="lPass" type="password" autocomplete="current-password" required>
     <small id="lAyuda" hidden>Mínimo 8 caracteres.</small>
     <button class="btn" id="lBtn" type="submit" style="width:100%;margin-top:14px">Entrar</button>
     <p id="lMsg" class="msg" role="alert"></p>

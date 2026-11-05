@@ -33,7 +33,7 @@ async function cargarConcursos() {
   const mes = `${NOMBRE_MES(mesObj)} ${mesObj.getFullYear()}`;
   const intro = el('div', 'conc-intro');
   intro.append(el('h3', null, `Fórmula N · GEN Interior · ${mes}`),
-    el('p', 'hint', 'Cada variable suma 1 punto si se llega al objetivo (clientes con compra). Hay 5 puntos posibles; con 100% de los puntos el premio es de $150.000 en gift card y se cobra desde el 80% de los puntos (4 de 5). Premio máximo: $150.000.'));
+    el('p', 'hint', 'Cada variable suma 1 punto si se llega al objetivo (clientes con compra). Para ganar el premio de $150.000 en gift card hay que llegar al objetivo en todas las variables (5 de 5 puntos).'));
   cont.append(intro);
 
   // ----- variables -----
@@ -53,11 +53,11 @@ async function cargarConcursos() {
   cont.append(lista);
 
   const total = CONC_VARS.reduce((s, v) => s + v.pts, 0), frac = puntos / total;
-  const premio = frac >= 0.8 ? PREMIO_MAX * frac : 0;
+  const premio = puntos === total ? PREMIO_MAX : 0;   // hay que llegar al objetivo en TODAS las variables para ganar
   const res = el('div', 'conc-res');
   const kv = (et, val, cls) => { const d = el('div'); d.append(el('small', null, et), el('b', cls, val)); return d; };
   res.append(kv('Puntos', `${puntos} de ${total}`), kv('Cumplimiento', `${nf0.format(frac * 100)}%`),
-    kv('Premio estimado', premio > 0 ? pesos(premio) : 'No llega al 80%', premio > 0 ? 'ok' : ''));
+    kv('Premio', premio > 0 ? pesos(premio) : `Faltan ${total - puntos} variable${total - puntos === 1 ? '' : 's'}`, premio > 0 ? 'ok' : ''));
   cont.append(res);
 
   // ----- objetivos (solo jefes) -----
@@ -104,7 +104,7 @@ async function cargarConcursos() {
   }
   cont.append(det);
 
-  cont.append(el('p', 'hint', 'Los clientes con compra se calculan solos con las ventas de Chess y se actualizan cada 30 minutos. Los puntos y el premio son una estimación según la mecánica del concurso; el reporte oficial es el de Fórmula N.'));
+  cont.append(el('p', 'hint', 'Los clientes con compra se calculan solos con las ventas de Chess y se actualizan cada 30 minutos. Los puntos y el premio son una estimación; el reporte oficial es el de Fórmula N.'));
 }
 
 document.addEventListener('tabcambio', e => { if (e.detail === 'obj') cargarConcursos(); });

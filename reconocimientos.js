@@ -23,11 +23,11 @@ async function cargarReconocimientos() {
   const filas = (r.data || []).filter(x => !/^supervisor/i.test(x.nombre));
   if (!filas.some(x => num0(x.kg_total) > 0)) { est.textContent = 'Todavía no hay ventas registradas para este mes.'; return; }
   est.textContent = info.estado === 'en curso'
-    ? `Mes en curso: los porcentajes son la proyección al cierre (${info.trab} de ${info.habiles} días hábiles trabajados).`
-    : 'Mes cerrado.';
+    ? `Mes en curso (${info.trab} de ${info.habiles} días hábiles trabajados): los porcentajes son el avance hasta hoy, real ÷ objetivo.`
+    : 'Mes cerrado: avance final contra el objetivo.';
 
   // Indicadores por vendedor (mismas reglas del Resumen)
-  const av = (acum, obj) => { const p = proyectar(acum, info); return p != null && obj > 0 ? p / obj * 100 : null; };
+  const av = (acum, obj) => (obj > 0 ? acum / obj * 100 : null);   // avance real hasta hoy (real ÷ objetivo), sin proyectar
   const datos = filas.map(x => ({
     id: x.id_vendedor, nombre: x.nombre, kg: num0(x.kg_total),
     total: av(num0(x.kg_total), num0(x.obj_kg)),

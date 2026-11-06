@@ -7,6 +7,7 @@
    Semáforo: En ritmo ≥ 100% · Cerca ≥ 85% · Atrasado. */
 
 const kgTxt = n => `${nf0.format(Math.round(n))} kg`;
+const ETQ = { ok: 'En ritmo', med: 'Cerca', bajo: 'Atrasado', nd: '' };
 const estadoDe = p => (p == null ? 'nd' : p >= 100 ? 'ok' : p >= 85 ? 'med' : 'bajo');
 const NOMBRE_MES = m => MESES[m.getMonth()].charAt(0).toUpperCase() + MESES[m.getMonth()].slice(1);
 
@@ -55,47 +56,55 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 function svgEl(tag, attrs) { const e = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v); return e; }
 
 // Medidor semicircular (escala 0–125%, con marca en el 100%)
-function medidor(pct) {
+function medidor(pct, estado) {
   const svg = svgEl('svg', { viewBox: '0 0 100 62', class: 'medidor', 'aria-hidden': 'true' });
   const R = 36, cx = 50, cy = 52, largo = Math.PI * R, arco = `M${cx - R} ${cy} A${R} ${R} 0 0 1 ${cx + R} ${cy}`;
   svg.append(svgEl('path', { d: arco, class: 'm-base' }));
   if (pct != null) {
     const p = Math.min(Math.max(pct, 0), 125) / 125;
-    svg.append(svgEl('path', { d: arco, class: 'm-prog ' + estadoDe(pct), 'stroke-dasharray': `${(largo * p).toFixed(1)} ${largo.toFixed(1)}` }));
+    svg.append(svgEl('path', { d: arco, class: 'm-prog ' + (estado || estadoDe(pct)), 'stroke-dasharray': `${(largo * p).toFixed(1)} ${largo.toFixed(1)}` }));
   }
   const ang = Math.PI * (100 / 125), x = f => (cx - f * Math.cos(ang)).toFixed(1), y = f => (cy - f * Math.sin(ang)).toFixed(1);
   svg.append(svgEl('line', { x1: x(R - 7), y1: y(R - 7), x2: x(R + 7), y2: y(R + 7), class: 'm-marca' }));
-  const t = svgEl('text', { x: cx, y: cy - 2, class: 'm-txt ' + estadoDe(pct), 'text-anchor': 'middle' });
+  const t = svgEl('text', { x: cx, y: cy - 2, class: 'm-txt ' + (estado || estadoDe(pct)), 'text-anchor': 'middle' });
   t.textContent = pct == null ? '—' : `${nf0.format(pct)}%`;
   svg.append(t);
   return svg;
 }
 
 // Tarjeta de indicador: etiqueta, valor grande, medidor, barra fina con marca del 100% y dos líneas de detalle
-function tarjeta(etiqueta, valor, pct, lineas, tono) {
+function tarjeta(etiqueta, valor, pct, lineas, tono, estado) {
   const c = el('div', 'kcard' + (tono ? ' ' + tono : ''));
   const sup = el('div', 'k-sup');
   const izq = el('div'); izq.append(el('small', 'k-et', etiqueta), el('div', 'k-val', valor));
-  sup.append(izq, medidor(pct));
+  sup.append(izq, medidor(pct, estado));
   c.append(sup);
-  if (pct != null) c.append(barraFina(pct));
+  if (pct != null) c.append(barraFina(pct, estado));
+  if (estado && ETQ[estado]) c.append(el('span', 'k-estado ' + estado, ETQ[estado]));
   for (const l of lineas) c.append(el('div', 'k-lin', l));
   return c;
 }
-function barraFina(pct) {
-  const b = el('div', 'bfina'), i = el('i', estadoDe(pct)), m = el('u');
+function barraFina(pct, estado) {
+  const b = el('div', 'bfina'), i = el('i', estado || estadoDe(pct)), m = el('u');
   i.style.width = Math.min(100, Math.max(0, pct) / 130 * 100) + '%';
   m.style.left = (100 / 130 * 100) + '%';
   b.append(i, m); return b;
 }
 
+// Texto de la derecha de una fila: el estado (En ritmo / Cerca / Atrasado) y debajo el dato real hasta la fecha
+function valorFila(est, real) {
+  const s = el('span', 'tb-val'); s.append(el('span', 'tb-est', est ? ETQ[est] : 'Sin objetivo'), el('small', null, real)); return s;
+}
+
 // Una fila de la lista de barras: nombre, barra con la línea del 100% y porcentaje con color de semáforo.
-function filaBarra(nombre, pct, valorTxt, detalle, anchoSinObj) {
+function filaBarra(nombre, pct, valorTxt, detalle, anchoSinObj, estado) {
+  const est = estado || (pct == null ? 'nd' : estadoDe(pct));
   const w = el('div', 'tb-w'), f = el('button', 'tb'); f.type = 'button';
-  const barra = el('div', 'tb-barra'), rel = el('i', pct == null ? 'nd' : estadoDe(pct)), marca = el('u');
+  const barra = el('div', 'tb-barra'), rel = el('i', est), marca = el('u');
   rel.style.width = (pct == null ? Math.max(3, anchoSinObj ?? 0) : Math.min(100, Math.max(0, pct) / 130 * 100)) + '%';
   barra.append(rel); if (pct != null) { marca.style.left = (100 / 130 * 100) + '%'; barra.append(marca); }
-  f.append(el('span', 'tb-nom', nombre), barra, el('b', 'tb-pct ' + (pct == null ? 'nd' : estadoDe(pct)), valorTxt));
+  const val = el('b', 'tb-pct ' + est); if (typeof valorTxt === 'object') val.append(valorTxt); else val.textContent = valorTxt;
+  f.append(el('span', 'tb-nom', nombre), barra, val);
   const det = el('div', 'tb-det', detalle); det.hidden = true;
   f.addEventListener('click', () => { det.hidden = !det.hidden; w.classList.toggle('abierto', !det.hidden); });
   w.append(f, det); return w;
@@ -157,33 +166,36 @@ function renderResumen() {
     tot.kg += num(f.kg_total); tot.nes += num(f.kg_nestle); tot.otr += num(f.kg_otros); tot.ccc += num(f.clientes_con_compra); tot.altas += num(f.altas);
     tot.objKg += num(f.obj_kg); tot.objNes += num(f.obj_kg_nestle); tot.objOtr += num(f.obj_kg_otros); tot.objCcc += objetivoClientes(f);
   }
-  const pr = (acum, obj) => { const p = proyectar(acum, info); return { proy: p, pct: p != null && obj > 0 ? p / obj * 100 : null }; };
+  // Se muestran los datos reales hasta la fecha (% = real ÷ objetivo). El estado (en ritmo / cerca / atrasado) se calcula
+  // internamente con el ritmo de venta, pero la proyección no se muestra.
+  const pr = (acum, obj) => {
+    const p = proyectar(acum, info);
+    return { pct: obj > 0 ? acum / obj * 100 : null, est: p != null && obj > 0 ? estadoDe(p / obj * 100) : null };
+  };
   const T = pr(tot.kg, tot.objKg), N = pr(tot.nes, tot.objNes), O = pr(tot.otr, tot.objOtr);
-  const cccPct = tot.objCcc > 0 ? tot.ccc / tot.objCcc * 100 : null;
+  const cccPct = tot.objCcc > 0 ? tot.ccc / tot.objCcc * 100 : null, cccEst = cccPct == null ? null : proyectar(tot.ccc, info) == null ? null : estadoDe(proyectar(tot.ccc, info) / tot.objCcc * 100);
 
-  // Frase de cierre
+  // Frase de situación
   const frase = $('#resFrase');
   if (!filas.length || tot.kg === 0) frase.textContent = 'Todavía no hay ventas registradas para este mes.';
-  else if (T.proy == null) frase.textContent = 'Todavía no hay días trabajados para proyectar el cierre.';
   else {
-    const base = info.estado === 'cerrado' ? `Fitnut cerró el mes en ${kgTxt(T.proy)}` : `A este ritmo, Fitnut cierra el mes en ${kgTxt(T.proy)}`;
-    frase.replaceChildren(document.createTextNode(base));
-    if (tot.objKg > 0) {
-      const e = estadoDe(T.pct), etq = { ok: 'en ritmo', med: 'cerca', bajo: 'atrasado' }[e];
-      frase.append(` contra un objetivo de ${kgTxt(tot.objKg)}: el `, el('b', 'f-' + e, `${nf0.format(T.pct)}%`), ' del objetivo (', el('b', 'f-' + e, etq), ').');
-    } else frase.append('. Todavía no hay objetivos de kilos cargados para este mes.');
+    frase.replaceChildren(document.createTextNode(`Fitnut lleva vendidos ${kgTxt(tot.kg)} en el mes`));
+    if (tot.objKg > 0 && T.est) {
+      frase.append(` de un objetivo de ${kgTxt(tot.objKg)} (${nf0.format(T.pct)}%): `, el('b', 'f-' + T.est, ETQ[T.est].toLowerCase()), '.');
+    } else if (tot.objKg > 0) frase.append(` de un objetivo de ${kgTxt(tot.objKg)} (${nf0.format(T.pct)}%).`);
+    else frase.append('. Todavía no hay objetivos de kilos cargados para este mes.');
   }
 
   // Tarjetas
-  const lin = (proy, obj) => [`Proyección ${proy == null ? '—' : kgTxt(proy)}`, obj > 0 ? `Objetivo ${kgTxt(obj)}` : 'Sin objetivo cargado'];
+  const lin = obj => [obj > 0 ? `Objetivo ${kgTxt(obj)}` : 'Sin objetivo cargado'];
   const K = $('#kCards'); K.replaceChildren(
-    tarjeta('Total kg', kgTxt(tot.kg), T.pct, lin(T.proy, tot.objKg)),
-    tarjeta('Nestlé · kg', kgTxt(tot.nes), N.pct, lin(N.proy, tot.objNes)),
-    tarjeta('Purina + Hileret · kg', kgTxt(tot.otr), O.pct, lin(O.proy, tot.objOtr)),
-    tarjeta('Clientes con compra', nf0.format(tot.ccc), cccPct, [tot.objCcc > 0 ? `Objetivo ${nf0.format(tot.objCcc)} clientes` : 'Sin objetivo']),
+    tarjeta('Total kg', kgTxt(tot.kg), T.pct, lin(tot.objKg), '', T.est),
+    tarjeta('Nestlé · kg', kgTxt(tot.nes), N.pct, lin(tot.objNes), '', N.est),
+    tarjeta('Purina + Hileret · kg', kgTxt(tot.otr), O.pct, lin(tot.objOtr), '', O.est),
+    tarjeta('Clientes con compra', nf0.format(tot.ccc), cccPct, [tot.objCcc > 0 ? `Objetivo ${nf0.format(tot.objCcc)} clientes` : 'Sin objetivo'], '', cccEst),
     tarjeta('Altas', nf0.format(tot.altas), null, ['Clientes nuevos: alta en el mes y con compra'], 'sin-medidor')
   );
-  est.textContent = (info.estado === 'en curso' ? `Mes en curso: se proyecta con ${info.trab} de ${info.habiles} días hábiles trabajados. ` : '') +
+  est.textContent = (info.estado === 'en curso' ? `Mes en curso: ${info.trab} de ${info.habiles} días hábiles trabajados. Los números son lo vendido hasta hoy; el estado indica si van en ritmo de llegar al objetivo. ` : '') +
     (tot.objKg > 0 ? '' : 'Los objetivos se cargan en la solapa Objetivos (hay que ingresar).');
 
   renderBarrasKg(); renderBarrasCcc();
@@ -196,13 +208,16 @@ function renderBarrasKg() {
   const { filas, info } = resDatos, cont = $('#barrasKg');
   const acum = f => Number(kgSel === 'total' ? f.kg_total : kgSel === 'nestle' ? f.kg_nestle : f.kg_otros);
   const obj = f => Number(kgSel === 'total' ? f.obj_kg : kgSel === 'nestle' ? f.obj_kg_nestle : f.obj_kg_otros) || 0;
-  const items = filas.map(f => { const a = acum(f), p = proyectar(a, info), o = obj(f); return { f, a, p, o, pct: p != null && o > 0 ? p / o * 100 : null }; })
-    .sort((x, y) => (y.pct ?? -1) - (x.pct ?? -1) || (y.p ?? 0) - (x.p ?? 0));
-  const maxP = Math.max(1, ...items.map(i => i.p ?? 0));
+  // % = real ÷ objetivo (datos hasta hoy). El estado sale del ritmo de venta, sin mostrar la proyección.
+  const items = filas.map(f => {
+    const a = acum(f), p = proyectar(a, info), o = obj(f);
+    return { f, a, o, pct: o > 0 ? a / o * 100 : null, est: p != null && o > 0 ? estadoDe(p / o * 100) : null };
+  }).sort((x, y) => (y.pct ?? -1) - (x.pct ?? -1) || y.a - x.a);
+  const maxA = Math.max(1, ...items.map(i => i.a));
   cont.replaceChildren();
   for (const i of items) {
-    const detalle = `Real ${kgTxt(i.a)} · Proyección ${i.p == null ? '—' : kgTxt(i.p)} · ${i.o > 0 ? 'Objetivo ' + kgTxt(i.o) : 'sin objetivo cargado'}`;
-    cont.append(filaBarra(i.f.nombre, i.pct, i.pct == null ? (i.p == null ? '—' : kgTxt(i.p)) : `${nf0.format(i.pct)}%`, detalle, (i.p ?? 0) / maxP * 100));
+    const detalle = `Real ${kgTxt(i.a)} · ${i.o > 0 ? `Objetivo ${kgTxt(i.o)} (${nf0.format(i.pct)}% logrado)` : 'sin objetivo cargado'}`;
+    cont.append(filaBarra(i.f.nombre, i.pct, valorFila(i.est, kgTxt(i.a)), detalle, i.a / maxA * 100, i.est || undefined));
   }
   if (!items.length) cont.append(el('p', 'hint', 'Sin datos para este mes.'));
 }
@@ -214,8 +229,11 @@ function renderBarrasCcc() {
     return { f, o, real, pct: o > 0 ? real / o * 100 : null };
   }).sort((x, y) => (y.pct ?? -1) - (x.pct ?? -1));
   cont.replaceChildren();
-  for (const i of items) cont.append(filaBarra(i.f.nombre, i.pct, i.pct == null ? nf0.format(i.real) : `${nf0.format(i.pct)}%`,
-    `${nf0.format(i.real)} clientes con compra de ${nf0.format(i.o)} de objetivo (${nf0.format(i.f.pct_cobertura)}% de su padrón activo de ${nf0.format(i.f.cartera)})`, 0));
+  for (const i of items) {
+    const p = proyectar(i.real, resDatos.info), est = i.pct == null || p == null ? null : estadoDe(p / i.o * 100);
+    cont.append(filaBarra(i.f.nombre, i.pct, valorFila(est, `${nf0.format(i.real)} clientes`),
+      `${nf0.format(i.real)} clientes con compra de ${nf0.format(i.o)} de objetivo (${nf0.format(i.f.pct_cobertura)}% de su padrón activo de ${nf0.format(i.f.cartera)})`, 0, est || undefined));
+  }
   if (!items.length) cont.append(el('p', 'hint', 'Sin datos para este mes.'));
   // nota con la regla del objetivo
   const grupos = new Map();

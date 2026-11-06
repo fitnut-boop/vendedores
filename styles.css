@@ -576,3 +576,5 @@ button.avatar-foto:not(:disabled){cursor:pointer}
 .menu a.item:hover,.menu a.item:focus-visible{border-color:var(--brand);outline:none}
 .menu a.item b::after{content:" ↗";font-weight:400;color:var(--muted)}
 .btn.ghost{background:transparent;color:var(--brand);border:1px solid var(--brand)}
+.lp-sub{margin:26px 0 4px;font-size:18px}
+a.btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}

@@ -194,14 +194,14 @@
         <button type="button" class="item" data-sub="rut"><b>Rutas de los vendedores</b><small>Grilla de días y semanas con la cobertura de cada ruta</small></button>
         <button type="button" class="item" data-sub="cc"><b>Cuentas corrientes</b><small>Deuda de los clientes de cada vendedor</small></button>
         <button type="button" class="item" data-sub="rec"><b>Reconocimientos</b><small>Podio del mes y lo mejor de cada vendedor</small></button>
-        <button type="button" class="item" data-sub="lp"><b>Lista de precios</b><small>Descargá la lista actualizada, General o Distribuidora</small></button>
+        <button type="button" class="item" data-sub="lp"><b>Lista de precios y catálogo</b><small>Lista General o Distribuidora (PDF/Excel) y catálogo de productos</small></button>
         <a class="item" href="https://ruteando.advantageconsultora.com/ingresar.html" target="_blank" rel="noopener noreferrer"><b>Consultar mi pedido</b><small>Se abre Ruteando en otra pestaña</small></a>
       </div>
     </section>
 
     <section class="card sub" id="sub-lp" hidden>
       <button type="button" class="link volver">‹ Volver</button>
-      <h2>Lista de precios</h2>
+      <h2>Lista de precios y catálogo</h2>
       <p class="hint">Lista simple de venta con los precios vigentes. Por defecto se descarga la <b>General</b>; si la necesitás, elegí la <b>Distribuidora</b>.</p>
       <div class="seg" id="lpSeg" role="group" aria-label="Lista">
         <button type="button" class="on" data-lp="g">General</button>
@@ -213,6 +213,10 @@
         <button type="button" class="btn ghost" id="lpXls">Descargar Excel</button>
       </div>
       <p id="lpMsg" class="msg"></p>
+
+      <h3 class="lp-sub">Catálogo de productos</h3>
+      <p class="hint">Catálogo FitNut de noviembre 2026: Nestlé, Purina e Hileret, con los códigos de cada producto (PDF, 24 MB).</p>
+      <a class="btn" id="lpCatalogo" href="descargas/Catalogo_FitNut.pdf" download="Catalogo FitNut Nov 2026.pdf">Descargar catálogo (PDF)</a>
     </section>
 
     <section class="card sub" id="sub-rec" hidden>

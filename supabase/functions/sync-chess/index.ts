@@ -288,6 +288,21 @@ async function syncPedidos(chess: Chess, db: any) {
   return { dias: dias.length, lineas: filas.length, estado: await guardarSiCambio(db, 'pedidos_pend', filas, 'reemplazar_pedidos_pend', { filas }) };
 }
 
+// Stock físico del depósito principal (para avisar disponibilidad en el cotizador)
+async function syncStock(chess: Chess, db: any) {
+  const [y, m, d] = hoyAR().split('-');   // la API pide la fecha como DD-MM-AAAA y no pagina
+  const crudos = rowsOf(await chess.get('/stock/', { idDeposito: 1, fechaStock: `${d}-${m}-${y}` }));
+  const por = new Map<number, { id_articulo: number; bultos: number; unidades: number }>();   // viene una fila por lote: se suman
+  for (const s of crudos) {
+    const id = num(s.idArticulo); if (id == null) continue;
+    const f = por.get(id) ?? { id_articulo: id, bultos: 0, unidades: 0 };
+    f.bultos += num(s.cantBultos) ?? 0; f.unidades += num(s.cantUnidades) ?? 0; por.set(id, f);
+  }
+  const filas = [...por.values()].sort((a, b) => a.id_articulo - b.id_articulo);
+  if (!filas.length) throw new Error('Chess devolvió 0 filas de stock: no se pisa la base.');
+  return { articulos: filas.length, conStock: filas.filter((f) => f.bultos > 0).length, estado: await guardarSiCambio(db, 'stock', filas, 'reemplazar_stock', { filas }) };
+}
+
 // Categoría y marca de cada artículo (agrupaciones de Chess), para el detalle de las rutas
 async function syncArticulosCat(chess: Chess, db: any) {
   const arts = await chess.todos('/articulos/', (a) => String(a.idArticulo));
@@ -357,6 +372,7 @@ Deno.serve(async (req: Request) => {
     if (solo === 'gestion') out.gestion = await syncGestion(chess, db);
     if (solo === 'pedidos') out.pedidos = await syncPedidos(chess, db);
     if (solo === 'articulos') out.articulos = await syncArticulosCat(chess, db);
+    if (solo === 'stock') out.stock = await syncStock(chess, db);
     if (solo === 'ventas') out.ventas = await syncVentas(chess, db, url.searchParams.get('mes') === 'anterior');
     return Response.json({ ok: true, ...out });
   } catch (e) {

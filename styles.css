@@ -632,3 +632,9 @@ body.sin-scroll{overflow:hidden}
 .carp-cat-chip{padding:6px 14px;border-radius:999px;font-weight:600;font-size:14px}.carp-cat-chip.si{background:#e4f4ea;color:#157347}.carp-cat-chip.no{background:#fbe9e7;color:#b42318}
 @media (max-width:640px){.carpeta{padding:0}.carp-panel{border-radius:0;min-height:100%}.carp-cuerpo{padding:12px}.carp-tit h2{font-size:20px}}
 .carp-cab .avatar-sm{background:#fff;color:#14306f;width:46px;height:46px}
+
+/* Stock en el cotizador */
+.o-stock{display:block;font-size:12px;font-weight:600;margin-top:2px}
+.o-stock.st-ok{color:#157347}.o-stock.st-poco{color:#b06a00}.o-stock.st-sin{color:#b42318}
+.st-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#c3cbe0;margin-left:8px;flex-shrink:0}
+.st-dot.st-ok{background:#157347}.st-dot.st-poco{background:#e0a21a}.st-dot.st-sin{background:#b42318}

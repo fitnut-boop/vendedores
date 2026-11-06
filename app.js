@@ -516,6 +516,27 @@ const rows = [];
 const elRows = $('#rows');
 const qty = v => { const n = parseFloat(String(v).replace(',', '.')); return n > 0 ? n : 0; };
 
+/* ================= stock (de Chess, se actualiza cada 30 minutos) ================= */
+let stockMap = {};   // { codigo: { estado: 'ok'|'poco'|'sin', bultos: n|null (sin sesión no se ven los bultos) } }
+async function cargarStock() {
+  if (!sb) return;
+  const { data, error } = await sb.rpc('stock_cotizador');
+  if (error || !data) return;
+  stockMap = Object.fromEntries(data.map(x => [x.codigo, { estado: x.estado, bultos: x.bultos == null ? null : Number(x.bultos) }]));
+  rows.forEach(r => r.refresh());
+}
+function infoStock(it, pedidos) {
+  const s = stockMap[it.c];
+  if (!s) return null;
+  const hay = s.bultos != null;
+  if (s.estado === 'sin') return { est: 'sin', txt: '✗ Sin stock' };
+  if (hay && pedidos > s.bultos + 0.0001) return { est: 'poco', txt: `⚠ Pedís ${nf2(pedidos)} y hay ${bul(s.bultos)}` };
+  if (s.estado === 'poco') return { est: 'poco', txt: hay ? `⚠ Pocas unidades: ${bul(s.bultos)}` : '⚠ Pocas unidades' };
+  return { est: 'ok', txt: hay ? `✓ Hay stock (${bul(s.bultos)})` : '✓ Disponible' };
+}
+const nf2 = n => new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 }).format(n);
+const bul = n => `${nf2(n)} ${Math.abs(n - 1) < 0.001 ? 'bulto' : 'bultos'}`;
+
 function addRow(init = {}) {
   const el = document.createElement('div');
   el.className = 'row row-grid';
@@ -525,7 +546,7 @@ function addRow(init = {}) {
     <div data-l="Bultos"><input class="i-bul" type="number" inputmode="decimal" min="0" step="any" aria-label="Bultos"></div>
     <div data-l="Unidades"><input class="i-uni" type="number" inputmode="decimal" min="0" step="any" aria-label="Unidades"></div>
     <div class="c-bon" data-l="Bonif. %"><input class="i-bon" type="number" inputmode="decimal" min="0" max="100" step="any" placeholder="0" aria-label="Bonificación %"></div>
-    <div class="c-price" data-l="Precio lista (fijo)"><span><span class="o-price">—</span><small class="o-unit"></small></span></div>
+    <div class="c-price" data-l="Precio lista (fijo)"><span><span class="o-price">—</span><small class="o-unit"></small><small class="o-stock"></small></span></div>
     <div class="c-total" data-l="Precio c/IVA"><b class="o-total">—</b></div>
     <div class="c-del"><button type="button" aria-label="Quitar fila">×</button></div>`;
   const q = s => $(s, el);
@@ -548,6 +569,8 @@ function addRow(init = {}) {
       q('.o-unit').textContent = it && it[seg] > 0
         ? `Unidad: ${money(it[seg] / it.u)} (${it.u} u/bulto${it.ug ? ' – estimado' : ''})` : '';
       q('.o-total').textContent = it && it[seg] > 0 ? money(c.total) : '—';
+      const st = q('.o-stock'), info = it ? infoStock(it, qty(iBul.value) + qty(iUni.value) / it.u) : null;
+      st.textContent = info ? info.txt : ''; st.className = 'o-stock' + (info ? ' st-' + info.est : '');
       totals(); save();
     }
   };
@@ -557,8 +580,9 @@ function addRow(init = {}) {
     r.refresh(); iBul.focus();
   };
   const renderItem = (b, it) => {
-    b.innerHTML = '<span></span><b></b>';
-    b.firstChild.textContent = it.c; b.lastChild.textContent = it.d;
+    b.innerHTML = '<span></span><b></b><i class="st-dot"></i>';
+    b.firstChild.textContent = it.c; b.children[1].textContent = it.d;
+    const sk = stockMap[it.c]; b.lastChild.className = 'st-dot' + (sk ? ' st-' + sk.estado : ''); b.lastChild.title = sk ? ({ ok: 'Hay stock', poco: 'Pocas unidades', sin: 'Sin stock' })[sk.estado] : '';
   };
 
   iCode.addEventListener('input', () => {
@@ -653,7 +677,7 @@ function quoteText() {
   for (const r of rows.filter(r => r.item && r.item[seg] > 0)) {
     const b = qty(r.inputs.iBul.value), u = qty(r.inputs.iUni.value), bo = qty(r.inputs.iBon.value);
     const cant = [b && `${b} bulto${b === 1 ? '' : 's'}`, u && `${u} un.`].filter(Boolean).join(' + ') || 'sin cantidad';
-    lines.push(`• ${r.item.d}\n   ${cant}${bo ? ` – bonif. ${bo}%` : ''} → ${money(r.calc().total)}`);
+    lines.push(`• ${r.item.d}\n   ${cant}${bo ? ` – bonif. ${bo}%` : ''} → ${money(r.calc().total)}${stockMap[r.item.c]?.estado === 'sin' ? ' ⚠ sin stock' : ''}`);
   }
   lines.push('', `Neto: ${money(t.neto)}`, `*Total con IVA: ${money(t.tot)}*`);
   return lines.join('\n');
@@ -825,4 +849,5 @@ $('#fCuentas').addEventListener('change', e => onFile(e.target, (rows_, f) => {
   irA(innerWidth >= 1024 ? 'res' : 'cot');   // en la compu abre el resumen; en el celular, el cotizador
   await loadData();
   restore();
+  cargarStock(); setInterval(cargarStock, 5 * 60 * 1000);
 })();

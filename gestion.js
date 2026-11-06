@@ -42,7 +42,7 @@ async function cargarObjetivos() {
     if (placeholder) i.placeholder = placeholder;
     i.setAttribute('aria-label', etiqueta); return i;
   };
-  for (const v of cfg.data) {
+  for (const v of cfg.data.filter(x => !/^supervisor/i.test(x.nombre_mostrar))) {   // el supervisor no tiene objetivos individuales
     const o = porId.get(v.id) || {};
     const row = el('div', 'orow'); row.dataset.id = v.id;
     const tot = el('span', 'o-tot', '');

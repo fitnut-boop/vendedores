@@ -164,7 +164,7 @@ function renderResumen() {
   const tot = { kg: 0, nes: 0, otr: 0, ccc: 0, altas: 0, objKg: 0, objNes: 0, objOtr: 0, objCcc: 0 };
   for (const f of filas) {
     tot.kg += num(f.kg_total); tot.nes += num(f.kg_nestle); tot.otr += num(f.kg_otros); tot.ccc += num(f.clientes_con_compra); tot.altas += num(f.altas);
-    tot.objKg += num(f.obj_kg); tot.objNes += num(f.obj_kg_nestle); tot.objOtr += num(f.obj_kg_otros); tot.objCcc += objetivoClientes(f);
+    tot.objKg += num(f.obj_kg); tot.objNes += num(f.obj_kg_nestle); tot.objOtr += num(f.obj_kg_otros); if (!esSupervisor(f)) tot.objCcc += objetivoClientes(f);   // lo vendido por el supervisor suma al total, pero no tiene objetivo individual
   }
   // Se muestran los datos reales hasta la fecha (% = real ÷ objetivo). El estado (en ritmo / cerca / atrasado) se calcula
   // internamente con el ritmo de venta, pero la proyección no se muestra.
@@ -202,6 +202,7 @@ function renderResumen() {
 }
 
 // Objetivo de clientes con compra de un vendedor: el cargado a mano o su % del padrón activo (cartera)
+const esSupervisor = f => /^supervisor/i.test(f.nombre || '');
 const objetivoClientes = f => (Number(f.obj_clientes) > 0 ? Number(f.obj_clientes) : Math.round(Number(f.pct_cobertura) / 100 * Number(f.cartera)));
 
 function renderBarrasKg() {
@@ -209,7 +210,7 @@ function renderBarrasKg() {
   const acum = f => Number(kgSel === 'total' ? f.kg_total : kgSel === 'nestle' ? f.kg_nestle : f.kg_otros);
   const obj = f => Number(kgSel === 'total' ? f.obj_kg : kgSel === 'nestle' ? f.obj_kg_nestle : f.obj_kg_otros) || 0;
   // % = real ÷ objetivo (datos hasta hoy). El estado sale del ritmo de venta, sin mostrar la proyección.
-  const items = filas.map(f => {
+  const items = filas.filter(f => !esSupervisor(f)).map(f => {
     const a = acum(f), p = proyectar(a, info), o = obj(f);
     return { f, a, o, pct: o > 0 ? a / o * 100 : null, est: p != null && o > 0 ? estadoDe(p / o * 100) : null };
   }).sort((x, y) => (y.pct ?? -1) - (x.pct ?? -1) || y.a - x.a);
@@ -224,7 +225,7 @@ function renderBarrasKg() {
 
 function renderBarrasCcc() {
   const { filas } = resDatos, cont = $('#barrasCcc');
-  const items = filas.filter(f => Number(f.cartera) > 0 || Number(f.clientes_con_compra) > 0).map(f => {
+  const items = filas.filter(f => !esSupervisor(f) && (Number(f.cartera) > 0 || Number(f.clientes_con_compra) > 0)).map(f => {
     const o = objetivoClientes(f), real = Number(f.clientes_con_compra);
     return { f, o, real, pct: o > 0 ? real / o * 100 : null };
   }).sort((x, y) => (y.pct ?? -1) - (x.pct ?? -1));

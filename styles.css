@@ -644,3 +644,11 @@ body.sin-scroll{overflow:hidden}
 .cmp-mes input{width:18px;height:18px}.cmp-mes small{font-weight:400;color:var(--muted)}
 .k-cmp{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:13px;color:var(--muted)}
 .k-cmp b{padding:2px 9px;border-radius:999px;font-size:12px}.k-cmp b.sube{background:#e4f4ea;color:#157347}.k-cmp b.baja{background:#fbe9e7;color:#b42318}
+
+/* Mi cuenta */
+.cuenta-modal{position:fixed;inset:0;z-index:70;background:rgba(5,12,31,.66);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
+.cuenta-modal[hidden]{display:none}
+.cuenta-caja{background:var(--card);border-radius:16px;padding:22px;width:min(440px,100%);box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.cuenta-caja h2{margin:0 0 6px}.cuenta-caja label{display:block;margin:10px 0 4px;font-weight:600}
+.cuenta-caja input{width:100%}.cuenta-caja small{display:block;color:var(--muted);margin-top:4px}
+.cuenta-acc{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}

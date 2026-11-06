@@ -343,6 +343,9 @@ function montarCalendario() {
   const p = new URLSearchParams({ ctz: 'America/Argentina/Buenos_Aires', hl: 'es', wkst: '2', mode: innerWidth < 760 ? 'AGENDA' : 'MONTH', showTitle: '0', showPrint: '0', showTz: '0', showCalendars: '0', showTabs: '1' });
   let url = 'https://calendar.google.com/calendar/embed?' + p.toString();
   for (const c of cals) url += '&src=' + encodeURIComponent(c.id) + '&color=' + encodeURIComponent(c.color || '#14306f');
+  // El calendario personal de quien ingresó (el mail que asoció a su cuenta), si es una cuenta de Google
+  const propio = perfilActual && perfilActual.emailContacto;
+  if (propio && !cals.some(c => c.id.toLowerCase() === propio)) url += '&src=' + encodeURIComponent(propio) + '&color=' + encodeURIComponent('#0b8043');
   f.src = url; f.dataset.listo = '1';
 }
 

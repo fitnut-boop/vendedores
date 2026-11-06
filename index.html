@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a1a3f">
 <title>App Vendedores</title>
-<link rel="stylesheet" href="styles.css?v=202611061226">
+<link rel="stylesheet" href="styles.css?v=202611061228">
 </head>
 <body>
 <header class="top">
@@ -344,18 +344,35 @@
 
   </main>
 
+<div id="cuenta" class="cuenta-modal" role="dialog" aria-modal="true" aria-labelledby="cuTitulo" hidden>
+  <form id="cuentaForm" class="cuenta-caja" autocomplete="off">
+    <h2 id="cuTitulo">Mi cuenta</h2>
+    <p id="cuAviso" class="hint"></p>
+    <label for="cuEmail">Mail asociado</label>
+    <input id="cuEmail" type="email" autocomplete="email" required placeholder="tu-mail@gmail.com">
+    <small>Sirve para recuperar tu contraseña y para ver tu Google Calendar en la solapa Calendario.</small>
+    <label for="cuPass" style="margin-top:12px">Contraseña nueva <span id="cuOpc"></span></label>
+    <input id="cuPass" type="password" autocomplete="new-password" minlength="8">
+    <label for="cuPass2">Repetí la contraseña</label>
+    <input id="cuPass2" type="password" autocomplete="new-password" minlength="8">
+    <small>Mínimo 8 caracteres, con letras y números.</small>
+    <p id="cuMsg" class="msg" role="status"></p>
+    <div class="cuenta-acc"><button type="submit" class="btn" id="cuGuardar">Guardar</button><button type="button" class="btn ghost" id="cuCerrar">Cancelar</button><button type="button" class="btn ghost" id="cuSalir" hidden>Salir</button></div>
+  </form>
+</div>
 <div id="carpeta" class="carpeta" role="dialog" aria-modal="true" aria-label="Carpeta del día" hidden><div class="carp-panel" id="carpCont"></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=202611061226"></script>
-<script src="app.js?v=202611061226"></script>
-<script src="gestion.js?v=202611061226"></script>
-<script src="tablero.js?v=202611061226"></script>
-<script src="reconocimientos.js?v=202611061226"></script>
-<script src="concursos.js?v=202611061226"></script>
-<script src="lista.js?v=202611061226"></script>
-<script src="carpeta.js?v=202611061226"></script>
+<script src="config.js?v=202611061228"></script>
+<script src="app.js?v=202611061228"></script>
+<script src="gestion.js?v=202611061228"></script>
+<script src="tablero.js?v=202611061228"></script>
+<script src="reconocimientos.js?v=202611061228"></script>
+<script src="concursos.js?v=202611061228"></script>
+<script src="lista.js?v=202611061228"></script>
+<script src="cuenta.js?v=202611061228"></script>
+<script src="carpeta.js?v=202611061228"></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 param([int]$Port = 8080)
 if ($env:PORT) { $Port = [int]$env:PORT }  # la vista previa del editor asigna el puerto por variable de entorno
 $root = $PSScriptRoot
-$types = @{ '.html'='text/html; charset=utf-8'; '.js'='text/javascript; charset=utf-8'; '.css'='text/css; charset=utf-8'; '.json'='application/json; charset=utf-8' }
+$types = @{ '.html'='text/html; charset=utf-8'; '.js'='text/javascript; charset=utf-8'; '.css'='text/css; charset=utf-8'; '.json'='application/json; charset=utf-8'; '.mp4'='video/mp4' }
 $l = [Net.HttpListener]::new()
 $l.Prefixes.Add("http://localhost:$Port/")
 $l.Start()

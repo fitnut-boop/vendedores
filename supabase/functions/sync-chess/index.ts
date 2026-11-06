@@ -288,6 +288,16 @@ async function syncPedidos(chess: Chess, db: any) {
   return { dias: dias.length, lineas: filas.length, estado: await guardarSiCambio(db, 'pedidos_pend', filas, 'reemplazar_pedidos_pend', { filas }) };
 }
 
+// Categoría y marca de cada artículo (agrupaciones de Chess), para el detalle de las rutas
+async function syncArticulosCat(chess: Chess, db: any) {
+  const arts = await chess.todos('/articulos/', (a) => String(a.idArticulo));
+  const grupo = (a: any, forma: string) => txt((Array.isArray(a.eAgrupaciones) ? a.eAgrupaciones : []).find((g: any) => g.idFormaAgrupar === forma)?.desAgrupacion);
+  const filas = arts.filter((a) => a.anulado !== true).map((a) => ({ id_articulo: num(a.idArticulo), descripcion: txt(a.desArticulo), categoria: grupo(a, 'Categoría'), marca: grupo(a, 'Marcas') }))
+    .filter((f) => f.id_articulo != null).sort((x, y) => x.id_articulo! - y.id_articulo!);
+  if (!filas.length) throw new Error('Chess devolvió 0 artículos: no se pisa la base.');
+  return { articulos: filas.length, conCategoria: filas.filter((f) => f.categoria).length, estado: await guardarSiCambio(db, 'articulos_cat', filas, 'reemplazar_articulos_cat', { filas }) };
+}
+
 async function syncGestion(chess: Chess, db: any) {
   const vend = rowsOf(await chess.get('/personalComercial/')).map(mapVendedor).filter((v) => v.id != null);
   if (!vend.length) throw new Error('Chess devolvió 0 vendedores: no se pisa la base.');
@@ -346,6 +356,7 @@ Deno.serve(async (req: Request) => {
     if (!solo || solo === 'precios') out.precios = await syncPrecios(chess, db);
     if (solo === 'gestion') out.gestion = await syncGestion(chess, db);
     if (solo === 'pedidos') out.pedidos = await syncPedidos(chess, db);
+    if (solo === 'articulos') out.articulos = await syncArticulosCat(chess, db);
     if (solo === 'ventas') out.ventas = await syncVentas(chess, db, url.searchParams.get('mes') === 'anterior');
     return Response.json({ ok: true, ...out });
   } catch (e) {

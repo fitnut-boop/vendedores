@@ -95,6 +95,7 @@ $('#objCopiar').addEventListener('click', copiarMesAnterior);
 
 /* ---------- Rutas de los vendedores: grilla de días × semanas con la cobertura de cada ruta ---------- */
 // Códigos de día de Chess: 1 = domingo, 2 = lunes … 7 = sábado. periodicidad 1 = semanal; 2 o más = cada N semanas (semana = cuál).
+const NOM_DIA_C = { 2: 'Lunes', 3: 'Martes', 4: 'Miércoles', 5: 'Jueves', 6: 'Viernes', 7: 'Sábado' };
 const DIAS_SEMANA = [['2', 'LUN'], ['3', 'MAR'], ['4', 'MIÉ'], ['5', 'JUE'], ['6', 'VIE'], ['7', 'SÁB']];
 let mesRut = primerDia(new Date());
 const iniciales = n => (n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0].toUpperCase()).join('');
@@ -142,24 +143,24 @@ async function cargarRutas() {
       grid.append(el('span', 'rg-fila', fn));
       for (const [dc] of columnas) {
         const celda = el('div', 'rg-celda');
-        for (const r of rutas.filter(x => claveFila(x) === fk && dias(x).includes(dc))) celda.append(botonRuta(r));
+        for (const r of rutas.filter(x => claveFila(x) === fk && dias(x).includes(dc))) celda.append(botonRuta(r, `${NOM_DIA_C[dc]} · ${fk === 'w' ? 'Semanal' : 'Sem. ' + fk.slice(1)}`));
         grid.append(celda);
       }
     }
     tarjeta.append(grid);
     const sinDia = rutas.filter(r => !dias(r).some(d => columnas.some(([c]) => c === d)));
-    if (sinDia.length) { const f = el('div', 'rg-sin'); f.append(el('small', null, 'Sin día de visita asignado:')); sinDia.forEach(r => f.append(botonRuta(r))); tarjeta.append(f); }
+    if (sinDia.length) { const f = el('div', 'rg-sin'); f.append(el('small', null, 'Sin día de visita asignado:')); sinDia.forEach(r => f.append(botonRuta(r, 'Sin día asignado'))); tarjeta.append(f); }
     cont.append(tarjeta);
   }
 }
 
 // Casillero de una ruta: color según cobertura (más oscuro = más clientes que compraron)
-function botonRuta(r) {
+function botonRuta(r, tituloDia) {
   const c = Number(r.clientes), k = Number(r.compraron), cob = c ? k / c * 100 : 0;
   const b = el('button', 'rg-ruta ' + (!c ? 'vacia' : cob >= 65 ? 'alta' : cob >= 45 ? 'media' : 'baja')); b.type = 'button';
   b.title = `Ruta ${r.id_ruta} · ${nClientes(c)} · compraron ${k} · cobertura ${nf0.format(cob)}%`;
   b.append(el('small', null, String(r.id_ruta)), el('b', null, nf0.format(c)), el('em', null, c ? `${nf0.format(cob)}%` : '—'));
-  b.addEventListener('click', () => detalleRuta(r, c, k, cob));
+  b.addEventListener('click', () => abrirCarpeta(r, tituloDia));
   return b;
 }
 

@@ -638,3 +638,9 @@ body.sin-scroll{overflow:hidden}
 .o-stock.st-ok{color:#157347}.o-stock.st-poco{color:#b06a00}.o-stock.st-sin{color:#b42318}
 .st-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#c3cbe0;margin-left:8px;flex-shrink:0}
 .st-dot.st-ok{background:#157347}.st-dot.st-poco{background:#e0a21a}.st-dot.st-sin{background:#b42318}
+
+/* Comparativo contra el mes anterior (opcional) */
+.cmp-mes{display:inline-flex;align-items:center;gap:8px;margin:2px 0 10px;font-weight:600;cursor:pointer}
+.cmp-mes input{width:18px;height:18px}.cmp-mes small{font-weight:400;color:var(--muted)}
+.k-cmp{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:13px;color:var(--muted)}
+.k-cmp b{padding:2px 9px;border-radius:999px;font-size:12px}.k-cmp b.sube{background:#e4f4ea;color:#157347}.k-cmp b.baja{background:#fbe9e7;color:#b42318}

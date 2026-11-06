@@ -12,7 +12,8 @@ const estadoDe = p => (p == null ? 'nd' : p >= 100 ? 'ok' : p >= 85 ? 'med' : 'b
 const NOMBRE_MES = m => MESES[m.getMonth()].charAt(0).toUpperCase() + MESES[m.getMonth()].slice(1);
 
 let mesRes = primerDia(new Date());
-let modoPend = false;         // false = solo facturado · true = facturado + pendiente de facturar (solo jefes)
+let cmpMes = false;           // comparar contra el mes anterior (se tilda y destilda desde el Resumen)
+let modoPend = false;        // false = solo facturado · true = facturado + pendiente de facturar (solo jefes)
 let kgSel = 'total';          // 'total' | 'nestle' | 'otros'
 let vistaRes = 'res';         // 'res' | 'bees'
 let feriados = null;          // Set de 'YYYY-MM-DD'
@@ -82,7 +83,7 @@ function tarjeta(etiqueta, valor, pct, lineas, tono, estado) {
   c.append(sup);
   if (pct != null) c.append(barraFina(pct, estado));
   if (estado && ETQ[estado]) c.append(el('span', 'k-estado ' + estado, ETQ[estado]));
-  for (const l of lineas) c.append(el('div', 'k-lin', l));
+  for (const l of lineas) c.append(typeof l === 'string' ? el('div', 'k-lin', l) : l);
   return c;
 }
 function barraFina(pct, estado) {
@@ -148,9 +149,33 @@ async function cargarResumen() {
     }
   } else if (modoPend) { modoPend = false; }
   syncModo(pend);
-  resDatos = { filas, info, pend };
+  // Comparativo opcional contra el mes anterior, hasta el mismo día del mes (o el mes completo si el mes elegido ya cerró)
+  let prev = null;
+  $('#cmpMes').checked = cmpMes;
+  if (cmpMes) {
+    const pi = new Date(mesRes.getFullYear(), mesRes.getMonth() - 1, 1), ult = new Date(pi.getFullYear(), pi.getMonth() + 1, 0);
+    const dia = info.estado === 'en curso' ? Math.min(new Date().getDate(), ult.getDate()) : ult.getDate();
+    const ph = new Date(pi.getFullYear(), pi.getMonth(), dia);
+    const rc = await sb.rpc('tablero_publico', { desde: iso(pi), hasta: iso(ph) });
+    if (!rc.error) {
+      const n = v => Number(v) || 0, tot = { kg: 0, nes: 0, otr: 0, ccc: 0, altas: 0 }, porId = new Map();
+      for (const f of rc.data || []) { tot.kg += n(f.kg_total); tot.nes += n(f.kg_nestle); tot.otr += n(f.kg_otros); tot.ccc += n(f.clientes_con_compra); tot.altas += n(f.altas); porId.set(f.id_vendedor, f); }
+      prev = { tot, porId, mes: NOMBRE_MES(pi), dia, completo: info.estado !== 'en curso' };
+    }
+  }
+  resDatos = { filas, info, pend, prev };
   renderResumen();
 }
+
+// Línea de comparación de una tarjeta: "Oct al día 6: 4.980 kg  ▲ +10%"
+function lineaCmp(actual, anterior, fmt) {
+  const d = el('div', 'k-cmp'), p = resDatos.prev;
+  const cambio = anterior > 0 ? (actual - anterior) / anterior * 100 : null;
+  d.append(el('span', null, `${p.mes}${p.completo ? '' : ' al día ' + p.dia}: ${fmt(anterior)}`));
+  if (cambio != null) d.append(el('b', cambio >= 0 ? 'sube' : 'baja', `${cambio >= 0 ? '▲ +' : '▼ '}${nf0.format(cambio)}%`));
+  return d;
+}
+$('#cmpMes').addEventListener('change', e => { cmpMes = e.target.checked; cargarResumen(); });
 
 // Marca el botón activo y explica qué se está viendo
 function syncModo(pend) {
@@ -220,13 +245,14 @@ function renderResumen() {
   }
 
   // Tarjetas
-  const lin = obj => [obj > 0 ? `Objetivo ${kgTxt(obj)}` : 'Sin objetivo cargado'];
+  const P = resDatos.prev, cm = (act, ant, fmt) => (P ? [lineaCmp(act, ant, fmt)] : []);
+  const lin = (obj, act, ant) => [obj > 0 ? `Objetivo ${kgTxt(obj)}` : 'Sin objetivo cargado', ...cm(act, P?.tot[ant], kgTxt)];
   const K = $('#kCards'); K.replaceChildren(
-    tarjeta('Total kg', kgTxt(tot.kg), T.pct, lin(tot.objKg), '', T.est),
-    tarjeta('Nestlé · kg', kgTxt(tot.nes), N.pct, lin(tot.objNes), '', N.est),
-    tarjeta('Purina + Hileret · kg', kgTxt(tot.otr), O.pct, lin(tot.objOtr), '', O.est),
-    tarjeta('Clientes con compra', nf0.format(tot.ccc), cccPct, [tot.objCcc > 0 ? `Objetivo ${nf0.format(tot.objCcc)} clientes` : 'Sin objetivo'], '', cccEst),
-    tarjeta('Altas', nf0.format(tot.altas), null, ['Clientes nuevos: alta en el mes y con compra'], 'sin-medidor')
+    tarjeta('Total kg', kgTxt(tot.kg), T.pct, lin(tot.objKg, tot.kg, 'kg'), '', T.est),
+    tarjeta('Nestlé · kg', kgTxt(tot.nes), N.pct, lin(tot.objNes, tot.nes, 'nes'), '', N.est),
+    tarjeta('Purina + Hileret · kg', kgTxt(tot.otr), O.pct, lin(tot.objOtr, tot.otr, 'otr'), '', O.est),
+    tarjeta('Clientes con compra', nf0.format(tot.ccc), cccPct, [tot.objCcc > 0 ? `Objetivo ${nf0.format(tot.objCcc)} clientes` : 'Sin objetivo', ...cm(tot.ccc, P?.tot.ccc, nf0.format)], '', cccEst),
+    tarjeta('Altas', nf0.format(tot.altas), null, ['Clientes nuevos: alta en el mes y con compra', ...cm(tot.altas, P?.tot.altas, nf0.format)], 'sin-medidor')
   );
   est.textContent = (info.estado === 'en curso' ? `Mes en curso: ${info.trab} de ${info.habiles} días hábiles trabajados. Los números son lo vendido hasta hoy; el estado indica si van en ritmo de llegar al objetivo. ` : '') +
     (tot.objKg > 0 ? '' : 'Los objetivos se cargan en la solapa Objetivos (hay que ingresar).');
@@ -250,7 +276,9 @@ function renderBarrasKg() {
   const maxA = Math.max(1, ...items.map(i => i.a));
   cont.replaceChildren();
   for (const i of items) {
-    const detalle = `Real ${kgTxt(i.a)} · ${i.o > 0 ? `Objetivo ${kgTxt(i.o)} (${nf0.format(i.pct)}% logrado)` : 'sin objetivo cargado'}`;
+    const pv = resDatos.prev?.porId.get(i.f.id_vendedor), pa = pv ? Number(kgSel === 'total' ? pv.kg_total : kgSel === 'nestle' ? pv.kg_nestle : pv.kg_otros) : null;
+    const vsPrev = pa != null ? ` · ${resDatos.prev.mes}${resDatos.prev.completo ? '' : ' al día ' + resDatos.prev.dia}: ${kgTxt(pa)}${pa > 0 ? ` (${i.a >= pa ? '+' : ''}${nf0.format((i.a - pa) / pa * 100)}%)` : ''}` : '';
+    const detalle = `Real ${kgTxt(i.a)} · ${i.o > 0 ? `Objetivo ${kgTxt(i.o)} (${nf0.format(i.pct)}% logrado)` : 'sin objetivo cargado'}${vsPrev}`;
     cont.append(filaBarra(i.f.nombre, i.pct, valorFila(i.est, kgTxt(i.a)), detalle, i.a / maxA * 100, i.est || undefined));
   }
   if (!items.length) cont.append(el('p', 'hint', 'Sin datos para este mes.'));

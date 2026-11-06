@@ -251,6 +251,43 @@ export function agruparArticulos(lineas: any[]) {
   return [...por.entries()].sort((x, y) => x[0].localeCompare(y[0])).map(([, f]) => ({ ...f, bultos: Math.round(f.bultos * 1000) / 1000 }));
 }
 
+// Kilos por bulto y proveedor de cada artículo, deducidos de las líneas facturadas (unimedtotal = kg de la línea).
+// Sirven para estimar los kilos de los pedidos pendientes, que casi nunca traen el peso.
+export function pesosArticulos(lineas: any[]) {
+  const por = new Map<number, { kg: number; bultos: number; prov: string }>();
+  for (const l of lineas) {
+    if (l.anulado === true || l.anulado === 'SI') continue;
+    const a = num(l.idArticulo), b = num(l.cantidadesTotal), kg = num(l.unimedtotal);
+    if (a == null || !b || kg == null) continue;
+    const x = por.get(a) ?? { kg: 0, bultos: 0, prov: '' };
+    x.kg += kg; x.bultos += b; if (txt(l.proveedor)) x.prov = txt(l.proveedor); por.set(a, x);
+  }
+  return [...por.entries()].filter(([, x]) => x.bultos !== 0 && x.kg / x.bultos > 0).sort((p, q) => p[0] - q[0])
+    .map(([id, x]) => ({ id_articulo: id, kg_bulto: Math.round(x.kg / x.bultos * 10000) / 10000, proveedor: x.prov }));
+}
+
+// Pedidos todavía sin facturar (emitido = false) hechos en el mes en curso, con sus líneas
+async function syncPedidos(chess: Chess, db: any) {
+  const hoy = hoyAR(), ini = hoy.slice(0, 8) + '01', filas: any[] = [];
+  const dias: string[] = [];
+  for (let d = new Date(ini + 'T12:00:00Z'); d.toISOString().slice(0, 10) <= hoy; d.setUTCDate(d.getUTCDate() + 1)) dias.push(d.toISOString().slice(0, 10));
+  for (const dia of dias) {
+    const peds = await chess.todos('/pedidos/', (p) => String(p.idPedido), { fechaPedido: dia, facturado: false, detallado: true });
+    for (const p of peds) {
+      if (p.eliminado === true || p.emitido === true) continue;
+      for (const it of Array.isArray(p.items) ? p.items : []) {
+        if (it.anulado === true) continue;
+        const bultos = num(it.cantBultos) ?? 0, unidades = num(it.cantUnidades) ?? 0;
+        filas.push({ id_pedido: String(p.idPedido), linea: num(it.idLineaDetalle) ?? 0, fecha_pedido: dia, fecha_entrega: txt(p.fechaEntrega).slice(0, 10),
+          id_vendedor: num(p.idVendedor), id_cliente: num(p.idCliente), id_articulo: num(it.idArticulo), bultos, unidades,
+          importe: Math.round((num(it.precioUnitario) ?? 0) * bultos * (1 - (num(it.bonificacion) ?? 0) / 100) * 100) / 100 });
+      }
+    }
+  }
+  filas.sort((a, b) => (a.id_pedido + '|' + String(a.linea).padStart(4, '0')).localeCompare(b.id_pedido + '|' + String(b.linea).padStart(4, '0')));
+  return { dias: dias.length, lineas: filas.length, estado: await guardarSiCambio(db, 'pedidos_pend', filas, 'reemplazar_pedidos_pend', { filas }) };
+}
+
 async function syncGestion(chess: Chess, db: any) {
   const vend = rowsOf(await chess.get('/personalComercial/')).map(mapVendedor).filter((v) => v.id != null);
   if (!vend.length) throw new Error('Chess devolvió 0 vendedores: no se pisa la base.');
@@ -276,8 +313,10 @@ async function syncVentas(chess: Chess, db: any, anterior: boolean) {
   const estado = await guardarSiCambio(db, `ventas_${desde.slice(0, 7)}`, filas, 'reemplazar_ventas', { desde, hasta, filas });
   const art = agruparArticulos(crudas);
   const estadoArt = await guardarSiCambio(db, 'ventas_art_' + desde.slice(0, 7), art, 'reemplazar_ventas_art', { desde, hasta, filas: art });
+  const pa = pesosArticulos(crudas);
+  const estadoPeso = await guardarSiCambio(db, 'articulos_peso_' + desde.slice(0, 7), pa, 'guardar_articulos_peso', { filas: pa });
   const proveedores = [...new Set(filas.map((f: any) => f.proveedor))];
-  return { desde, hasta, lineas: crudas.length, filas: filas.length, articulosConPeso: pesos.size, lineasSinPeso: filas.sinPeso, sinPesoTop: filas.top, proveedores, estado, articulos: art.length, estadoArt };
+  return { desde, hasta, lineas: crudas.length, filas: filas.length, articulosConPeso: pesos.size, lineasSinPeso: filas.sinPeso, sinPesoTop: filas.top, proveedores, estado, articulos: art.length, estadoArt, pesos: pa.length, estadoPeso };
 }
 
 /* ---------- entrada ---------- */
@@ -306,6 +345,7 @@ Deno.serve(async (req: Request) => {
     if (!solo || solo === 'clientes') out.clientes = await syncClientes(chess, db);
     if (!solo || solo === 'precios') out.precios = await syncPrecios(chess, db);
     if (solo === 'gestion') out.gestion = await syncGestion(chess, db);
+    if (solo === 'pedidos') out.pedidos = await syncPedidos(chess, db);
     if (solo === 'ventas') out.ventas = await syncVentas(chess, db, url.searchParams.get('mes') === 'anterior');
     return Response.json({ ok: true, ...out });
   } catch (e) {

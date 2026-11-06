@@ -578,3 +578,9 @@ button.avatar-foto:not(:disabled){cursor:pointer}
 .btn.ghost{background:transparent;color:var(--brand);border:1px solid var(--brand)}
 .lp-sub{margin:26px 0 4px;font-size:18px}
 a.btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+
+/* Resumen: selector facturado / con pendiente (solo jefes) */
+.modo-fact{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:6px 0 12px}
+.modo-fact .seg button:disabled{opacity:.45;cursor:not-allowed}
+.modo-fact small{color:var(--muted);flex:1 1 280px}
+.modo-fact[hidden]{display:none}

@@ -12,6 +12,7 @@ const estadoDe = p => (p == null ? 'nd' : p >= 100 ? 'ok' : p >= 85 ? 'med' : 'b
 const NOMBRE_MES = m => MESES[m.getMonth()].charAt(0).toUpperCase() + MESES[m.getMonth()].slice(1);
 
 let mesRes = primerDia(new Date());
+let modoPend = false;         // false = solo facturado · true = facturado + pendiente de facturar (solo jefes)
 let kgSel = 'total';          // 'total' | 'nestle' | 'otros'
 let vistaRes = 'res';         // 'res' | 'bees'
 let feriados = null;          // Set de 'YYYY-MM-DD'
@@ -127,9 +128,41 @@ async function cargarResumen() {
     $('#datosAl').innerHTML = 'Dashboard comercial · datos al <b>' + f.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + '</b> ' + f.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
   }
   if (r.error) { est.textContent = msgErr(r.error); return; }
-  resDatos = { filas: r.data || [], info };
+  let filas = r.data || [], pend = null;
+  // Solo supervisor y jefes: sumar lo que está pedido y todavía no se facturó (solo tiene sentido en el mes en curso)
+  const caja = $('#modoFact');
+  caja.hidden = !esJefe;
+  const puede = esJefe && info.estado === 'en curso';
+  document.querySelector('#modoFact button[data-m="pend"]').disabled = !puede;
+  if (modoPend && puede) {
+    const rp = await sb.rpc('tablero_pendiente', { desde: iso(info.ini), hasta: iso(info.fin) });
+    if (rp.error) { est.textContent = msgErr(rp.error); modoPend = false; syncModo(); }
+    else {
+      const m = new Map((rp.data || []).map(x => [x.id_vendedor, x])), n = v => Number(v) || 0;
+      pend = { kg: 0, nes: 0, otr: 0, cli: 0 };
+      filas = filas.map(f => {
+        const p = m.get(f.id_vendedor); if (!p) return f;
+        pend.kg += n(p.kg_total); pend.nes += n(p.kg_nestle); pend.otr += n(p.kg_otros); pend.cli += n(p.clientes_nuevos);
+        return { ...f, kg_total: n(f.kg_total) + n(p.kg_total), kg_nestle: n(f.kg_nestle) + n(p.kg_nestle), kg_otros: n(f.kg_otros) + n(p.kg_otros), clientes_con_compra: n(f.clientes_con_compra) + n(p.clientes_nuevos) };
+      });
+    }
+  } else if (modoPend) { modoPend = false; }
+  syncModo(pend);
+  resDatos = { filas, info, pend };
   renderResumen();
 }
+
+// Marca el botón activo y explica qué se está viendo
+function syncModo(pend) {
+  document.querySelectorAll('#modoFact button').forEach(b => b.classList.toggle('on', (b.dataset.m === 'pend') === modoPend));
+  const nota = $('#modoNota');
+  if (modoPend && pend) nota.textContent = `Se suman ${kgTxt(pend.kg)} de pedidos pendientes de facturar (Nestlé ${kgTxt(pend.nes)} · Purina + Hileret ${kgTxt(pend.otr)}) y ${nf0.format(pend.cli)} clientes que todavía no compraron facturado. Es una simulación: lo oficial es lo facturado.`;
+  else nota.textContent = 'Solo se cuenta lo facturado, que es lo que suma al cumplimiento de los objetivos. Para ver cómo vas si se factura todo lo pendiente, elegí la otra opción.';
+}
+document.querySelectorAll('#modoFact button').forEach(b => b.addEventListener('click', () => {
+  if (b.disabled) return;
+  modoPend = b.dataset.m === 'pend'; cargarResumen();
+}));
 
 function renderPills() {
   const cont = $('#mesPills'), hoy = new Date(), anio = mesRes.getFullYear();
@@ -179,7 +212,7 @@ function renderResumen() {
   const frase = $('#resFrase');
   if (!filas.length || tot.kg === 0) frase.textContent = 'Todavía no hay ventas registradas para este mes.';
   else {
-    frase.replaceChildren(document.createTextNode(`Fitnut lleva vendidos ${kgTxt(tot.kg)} en el mes`));
+    frase.replaceChildren(document.createTextNode(resDatos.pend ? `Entre lo facturado y lo pendiente de facturar, Fitnut suma ${kgTxt(tot.kg)} en el mes` : `Fitnut lleva vendidos ${kgTxt(tot.kg)} en el mes`));
     if (tot.objKg > 0 && T.est) {
       frase.append(` de un objetivo de ${kgTxt(tot.objKg)} (${nf0.format(T.pct)}%): `, el('b', 'f-' + T.est, ETQ[T.est].toLowerCase()), '.');
     } else if (tot.objKg > 0) frase.append(` de un objetivo de ${kgTxt(tot.objKg)} (${nf0.format(T.pct)}%).`);

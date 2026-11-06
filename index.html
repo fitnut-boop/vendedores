@@ -97,6 +97,14 @@
   </section>
 
   <div id="vistaRes">
+    <!-- Solo para el supervisor y los jefes: ver el avance con lo facturado, o sumando también los pedidos pendientes de facturar -->
+    <div id="modoFact" class="modo-fact" hidden>
+      <div class="seg" role="group" aria-label="Qué pedidos se cuentan">
+        <button type="button" class="on" data-m="fact">Facturado</button>
+        <button type="button" data-m="pend">Facturado + pendiente de facturar</button>
+      </div>
+      <small id="modoNota"></small>
+    </div>
     <section class="kcards" id="kCards"></section>
     <p id="resEstado" class="hint"></p>
     <div class="paneles">

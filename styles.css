@@ -570,3 +570,9 @@ button.avatar-foto:not(:disabled){cursor:pointer}
   .row{grid-template-columns:70px 1fr 60px 60px 110px 60px 110px}
   .head{display:grid!important;grid-template-columns:70px 1fr 60px 60px 110px 60px 110px}
 }
+
+/* Menú: enlace externo con el mismo aspecto que los botones */
+.menu a.item{text-decoration:none;color:inherit;cursor:pointer}
+.menu a.item:hover,.menu a.item:focus-visible{border-color:var(--brand);outline:none}
+.menu a.item b::after{content:" ↗";font-weight:400;color:var(--muted)}
+.btn.ghost{background:transparent;color:var(--brand);border:1px solid var(--brand)}

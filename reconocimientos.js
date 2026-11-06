@@ -47,12 +47,12 @@ async function cargarReconocimientos() {
   const rank = Object.fromEntries(CATS.map(c => [c.k, ranking(c.k)]));
 
   // ----- Podio (avance total; si todavía no hay objetivos, por kilos vendidos) -----
-  const conObj = rank.total.length >= 3;
-  const podioLista = conObj ? rank.total : [...datos].sort((a, b) => b.kg - a.kg);
+  const conObj = false;   // el podio muestra solo los kilos reales vendidos hasta ahora
+  const podioLista = [...datos].sort((a, b) => b.kg - a.kg);
   const top = podioLista.slice(0, 3);
   if (top.length) {
     const p = el('section', 'podio');
-    p.append(el('div', 'podio-tit', conObj ? 'Podio del mes · avance total en kg' : 'Podio del mes · kilos vendidos'));
+    p.append(el('div', 'podio-tit', 'Podio del mes · kilos vendidos hasta ahora'));
     const fila = el('div', 'podio-fila');
     const orden = [top[1], top[0], top[2]], pos = [1, 0, 2];   // 2°, 1°, 3°
     orden.forEach((d, i) => {

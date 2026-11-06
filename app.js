@@ -666,7 +666,44 @@ $('#btnCopy').addEventListener('click', async e => {
   catch { e.target.textContent = 'No se pudo copiar'; }
   setTimeout(() => e.target.textContent = 'Copiar', 1500);
 });
-$('#btnPrint').addEventListener('click', () => print());
+// PDF de la cotización (armado con jsPDF, no con la impresión del navegador)
+function cotizacionPdf() {
+  if (!window.jspdf || !window.jspdf.jsPDF) { alert('No se pudo cargar el generador de PDF. Revisá tu conexión e intentá de nuevo.'); return; }
+  const seg = elSeg.value, t = totals();
+  const filas = rows.filter(r => r.item && r.item[seg] > 0);
+  if (!filas.length) { alert('Agregá al menos un producto para generar el PDF.'); return; }
+  const doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' }), W = doc.internal.pageSize.getWidth();
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(20, 48, 111); doc.text('FitNut · Cotización', 40, 48);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(70);
+  doc.text(`Fecha: ${$('#fecha').value}`, 40, 68);
+  doc.text(`Cliente: ${cliente ? cliLabel(cliente) : 'General'}`, 40, 83);
+  doc.text(`Lista: ${SEGS[seg]} · Precios por bulto · IVA ${Math.round(IVA * 100)}%`, 40, 98);
+  doc.autoTable({
+    startY: 112,
+    head: [['Cód.', 'Producto', 'Cantidad', 'Precio lista (bulto)', 'Bonif.', 'Total c/IVA']],
+    body: filas.map(r => {
+      const b = qty(r.inputs.iBul.value), u = qty(r.inputs.iUni.value), bo = qty(r.inputs.iBon.value), c = r.calc();
+      const cant = [b && `${b} bulto${b === 1 ? '' : 's'}`, u && `${u} un.`].filter(Boolean).join(' + ') || '—';
+      return [r.item.c, r.item.d, cant, money(c.price), bo ? `${bo}%` : '—', money(c.total)];
+    }),
+    styles: { fontSize: 9, cellPadding: 4, valign: 'middle' },
+    headStyles: { fillColor: [20, 48, 111], textColor: 255 },
+    alternateRowStyles: { fillColor: [244, 246, 251] },
+    columnStyles: { 0: { cellWidth: 50 }, 2: { cellWidth: 70 }, 3: { halign: 'right', cellWidth: 84 }, 4: { halign: 'right', cellWidth: 38 }, 5: { halign: 'right', cellWidth: 84 } },
+    margin: { left: 40, right: 40, bottom: 40 }
+  });
+  let y = doc.lastAutoTable.finalY + 18;
+  if (y > doc.internal.pageSize.getHeight() - 130) { doc.addPage(); y = 50; }
+  const fila = (et, v, bold) => { doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setFontSize(bold ? 12 : 10); doc.setTextColor(bold ? 20 : 70, bold ? 48 : 70, bold ? 111 : 70); doc.text(et, W - 230, y); doc.text(v, W - 40, y, { align: 'right' }); y += bold ? 20 : 16; };
+  fila('Subtotal', money(t.sub)); fila('Bonificación', money(t.bon)); fila('Neto', money(t.neto)); fila('IVA ' + Math.round(IVA * 100) + '%', money(round2(t.tot - t.neto)));
+  doc.setDrawColor(190); doc.line(W - 230, y - 8, W - 40, y - 8); y += 4;
+  fila('Total con IVA', money(t.tot), true);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(130);
+  doc.text('Cotización sujeta a disponibilidad y a cambios de precio. Documento no válido como factura.', 40, doc.internal.pageSize.getHeight() - 24);
+  const quien = (cliente ? cliLabel(cliente) : 'General').replace(/[^\w\s-]/g, '').trim().slice(0, 30);
+  doc.save(`Cotizacion ${quien} ${$('#fecha').value.replace(/\//g, '-')}.pdf`);
+}
+$('#btnPrint').addEventListener('click', cotizacionPdf);
 
 /* ================= pestañas y carga de datos ================= */
 // Cambia de solapa y avisa a los demás módulos (evento "tabcambio") para que carguen sus datos.

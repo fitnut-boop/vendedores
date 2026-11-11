@@ -120,9 +120,10 @@ async function cargarResumen() {
   renderPills(); renderEncabezado(info);
   if (!sb) { est.textContent = 'Disponible al conectar con Supabase.'; return; }
   est.textContent = 'Cargando…';
-  const [r, ua] = await Promise.all([
+  const [r, ua, ov] = await Promise.all([
     sb.rpc('tablero_publico', { desde: iso(info.ini), hasta: iso(info.fin) }),
-    sb.rpc('ultima_actualizacion')
+    sb.rpc('ultima_actualizacion'),
+    sb.rpc('objetivos_vigente', { p_mes: iso(info.ini) })
   ]);
   if (ua?.data) {
     const f = new Date(ua.data);
@@ -163,7 +164,7 @@ async function cargarResumen() {
       prev = { tot, porId, mes: NOMBRE_MES(pi), dia, completo: info.estado !== 'en curso' };
     }
   }
-  resDatos = { filas, info, pend, prev };
+  resDatos = { filas, info, pend, prev, objDe: ov?.data && ov.data !== iso(info.ini) ? ov.data : null };
   renderResumen();
 }
 
@@ -255,6 +256,7 @@ function renderResumen() {
     tarjeta('Altas', nf0.format(tot.altas), null, ['Clientes nuevos: alta en el mes y con compra', ...cm(tot.altas, P?.tot.altas, nf0.format)], 'sin-medidor')
   );
   est.textContent = (info.estado === 'en curso' ? `Mes en curso: ${info.trab} de ${info.habiles} días hábiles trabajados. Los números son lo vendido hasta hoy; el estado indica si van en ritmo de llegar al objetivo. ` : '') +
+    (resDatos.objDe ? `Los objetivos de ${NOMBRE_MES(mesRes)} todavía no están cargados: se usan los de ${NOMBRE_MES(new Date(resDatos.objDe + 'T12:00:00'))} hasta que aparezcan. ` : '') +
     (tot.objKg > 0 ? '' : 'Los objetivos se cargan en la solapa Objetivos (hay que ingresar).');
 
   renderBarrasKg(); renderBarrasCcc();

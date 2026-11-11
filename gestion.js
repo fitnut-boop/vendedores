@@ -33,7 +33,7 @@ async function cargarObjetivos() {
     sb.from('objetivos').select('*').eq('periodo', iso(mesObj))
   ]);
   if (cfg.error || obj.error) { msg.className = 'msg err'; msg.textContent = msgErr(cfg.error || obj.error); return; }
-  msg.className = 'msg'; msg.textContent = '';
+  msg.className = 'msg'; msg.textContent = obj.data.length ? '' : `Todavía no hay objetivos cargados para ${MESES[mesObj.getMonth()]}: el Resumen usa los del último mes cargado hasta que aparezcan (se leen solos de la carpeta de Drive).`;
   const porId = new Map(obj.data.map(o => [o.id_vendedor, o]));
   const cab = el('div', 'orow ocab'); cab.append(el('span', null, 'Vendedor'), el('span', null, 'Nestlé (kg)'), el('span', null, 'Purina + Hileret (kg)'), el('span', null, 'Total (kg)'), el('span', null, 'Clientes con compra'));
   tabla.append(cab);

@@ -197,8 +197,8 @@ async function initAuth() {
   if (!sb) { aplicarRol(); return true; }
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { logueado = false; aplicarRol(); return true; }   // sin ingresar: Resumen y Cotizador
-  const { data: p } = await sb.from('perfiles').select('rol,nombre,email_contacto,cuenta_lista').eq('id', session.user.id).maybeSingle();
-  perfilActual = { nombre: p?.nombre || session.user.email, rol: p?.rol || 'vendedor', emailContacto: p?.email_contacto || '', cuentaLista: p ? p.cuenta_lista !== false : true, authEmail: session.user.email };
+  const { data: p } = await sb.from('perfiles').select('rol,nombre,email_contacto,cuenta_lista,id_vendedor').eq('id', session.user.id).maybeSingle();
+  perfilActual = { nombre: p?.nombre || session.user.email, rol: p?.rol || 'vendedor', emailContacto: p?.email_contacto || '', cuentaLista: p ? p.cuenta_lista !== false : true, authEmail: session.user.email, idVendedor: p?.id_vendedor ?? null };
   if (p?.rol === 'pendiente') {            // cuenta creada pero todavía no aprobada: ve solo lo público
     logueado = false; aplicarRol(); showLogin('pendiente'); return true;
   }

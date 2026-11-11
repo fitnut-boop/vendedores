@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a1a3f">
 <title>App Vendedores</title>
-<link rel="stylesheet" href="styles.css?v=202611111054">
+<link rel="stylesheet" href="styles.css?v=202611111111">
 </head>
 <body>
 <header class="top">
@@ -204,8 +204,16 @@
         <button type="button" class="item" data-sub="cc"><b>Cuentas corrientes</b><small>Deuda de los clientes de cada vendedor</small></button>
         <button type="button" class="item" data-sub="rec"><b>Reconocimientos</b><small>Podio del mes y lo mejor de cada vendedor</small></button>
         <button type="button" class="item" data-sub="lp"><b>Lista de precios y catálogo</b><small>Lista General o Distribuidora (PDF/Excel) y catálogo de productos</small></button>
+        <button type="button" class="item" data-sub="bre" id="menuBre" hidden><b>Métrica de Brenda</b><small>Su cobertura al 70% por rutas y segmentos, cómo viene</small></button>
         <a class="item" href="https://ruteando.advantageconsultora.com/ingresar.html" target="_blank" rel="noopener noreferrer"><b>Consultar mi pedido</b><small>Se abre Ruteando en otra pestaña</small></a>
       </div>
+    </section>
+
+    <section class="card sub" id="sub-bre" hidden>
+      <button type="button" class="link volver">‹ Volver</button>
+      <h2>Métrica de Brenda</h2>
+      <p id="breEstado" class="hint"></p>
+      <div id="breCont"></div>
     </section>
 
     <section class="card sub" id="sub-lp" hidden>
@@ -365,14 +373,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=202611111054"></script>
-<script src="app.js?v=202611111054"></script>
-<script src="gestion.js?v=202611111054"></script>
-<script src="tablero.js?v=202611111054"></script>
-<script src="reconocimientos.js?v=202611111054"></script>
-<script src="concursos.js?v=202611111054"></script>
-<script src="lista.js?v=202611111054"></script>
-<script src="cuenta.js?v=202611111054"></script>
-<script src="carpeta.js?v=202611111054"></script>
+<script src="config.js?v=202611111111"></script>
+<script src="app.js?v=202611111111"></script>
+<script src="gestion.js?v=202611111111"></script>
+<script src="tablero.js?v=202611111111"></script>
+<script src="reconocimientos.js?v=202611111111"></script>
+<script src="concursos.js?v=202611111111"></script>
+<script src="lista.js?v=202611111111"></script>
+<script src="cuenta.js?v=202611111111"></script>
+<script src="brenda.js?v=202611111111"></script>
+<script src="carpeta.js?v=202611111111"></script>
 </body>
 </html>

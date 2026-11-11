@@ -288,6 +288,39 @@ async function syncPedidos(chess: Chess, db: any) {
   return { dias: dias.length, lineas: filas.length, estado: await guardarSiCambio(db, 'pedidos_pend', filas, 'reemplazar_pedidos_pend', { filas }) };
 }
 
+// CUIT de cada cliente y primera compra histórica por CUIT (para contar "altas" como el Excel del jefe).
+// Las líneas de venta traen "Tipo Id" (80 = CUIT) e "Identificador". Solo cuentan compras positivas (no notas de crédito ni anuladas).
+export function primerasCuit(lineas: any[]) {
+  const cuitDe = new Map<number, string>(), primera = new Map<string, string>();
+  for (const l of lineas) {
+    if (l.anulado === true || l.anulado === 'SI') continue;
+    const c = num(l.idCliente), fecha = txt(l.fechaComprobate).slice(0, 10); if (c == null || !fecha) continue;
+    const ident = txt(l['Identificador']).replace(/\D/g, ''), cuit = num(l['Tipo Id']) === 80 && ident.length >= 10 ? ident : 'ID' + c;
+    cuitDe.set(c, cuit);
+    if ((num(l.cantidadesTotal) ?? 0) > 0 || (num(l.subtotalNeto) ?? 0) > 0) { const p = primera.get(cuit); if (!p || fecha < p) primera.set(cuit, fecha); }
+  }
+  return {
+    cuits: [...primera.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([cuit, p]) => ({ cuit, primera: p })),
+    clientes: [...cuitDe.entries()].sort((a, b) => a[0] - b[0]).map(([id_cliente, cuit]) => ({ id_cliente, cuit })),
+  };
+}
+
+// Carga el historial de compras de varios meses seguidos (hacia atrás desde "hasta") solo para conocer la primera compra de cada CUIT
+async function syncPrimeras(chess: Chess, db: any, hasta: string, meses: number) {
+  const out: any[] = [];
+  let [y, m] = hasta.split('-').map(Number);
+  for (let i = 0; i < meses; i++) {
+    const ini = new Date(Date.UTC(y, m - 1, 1)).toISOString().slice(0, 10), fin = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+    const crudas = await chess.todos('/ventas/', (l) => [l.idEmpresa, l.idDocumento, l.letra, l.serie, l.nrodoc, l.idLinea].join('|'), { fechaDesde: ini, fechaHasta: fin, detallado: true });
+    const pr = primerasCuit(crudas);
+    const { error } = await db.rpc('guardar_primeras', { p_cuits: pr.cuits, p_clientes: pr.clientes });
+    if (error) throw new Error('guardar_primeras: ' + error.message);
+    out.push({ mes: ini.slice(0, 7), lineas: crudas.length, cuits: pr.cuits.length });
+    m--; if (m === 0) { m = 12; y--; }
+  }
+  return out;
+}
+
 // Stock físico del depósito principal (para avisar disponibilidad en el cotizador)
 async function syncStock(chess: Chess, db: any) {
   const [y, m, d] = hoyAR().split('-');   // la API pide la fecha como DD-MM-AAAA y no pagina
@@ -307,7 +340,7 @@ async function syncStock(chess: Chess, db: any) {
 async function syncArticulosCat(chess: Chess, db: any) {
   const arts = await chess.todos('/articulos/', (a) => String(a.idArticulo));
   const grupo = (a: any, forma: string) => txt((Array.isArray(a.eAgrupaciones) ? a.eAgrupaciones : []).find((g: any) => g.idFormaAgrupar === forma)?.desAgrupacion);
-  const filas = arts.filter((a) => a.anulado !== true).map((a) => ({ id_articulo: num(a.idArticulo), descripcion: txt(a.desArticulo), categoria: grupo(a, 'Categoría'), marca: grupo(a, 'Marcas') }))
+  const filas = arts.filter((a) => a.anulado !== true).map((a) => ({ id_articulo: num(a.idArticulo), descripcion: txt(a.desArticulo), categoria: grupo(a, 'Categoría'), marca: grupo(a, 'Marcas'), segmento: grupo(a, 'SEGMENTO') }))
     .filter((f) => f.id_articulo != null).sort((x, y) => x.id_articulo! - y.id_articulo!);
   if (!filas.length) throw new Error('Chess devolvió 0 artículos: no se pisa la base.');
   return { articulos: filas.length, conCategoria: filas.filter((f) => f.categoria).length, estado: await guardarSiCambio(db, 'articulos_cat', filas, 'reemplazar_articulos_cat', { filas }) };
@@ -340,8 +373,10 @@ async function syncVentas(chess: Chess, db: any, anterior: boolean) {
   const estadoArt = await guardarSiCambio(db, 'ventas_art_' + desde.slice(0, 7), art, 'reemplazar_ventas_art', { desde, hasta, filas: art });
   const pa = pesosArticulos(crudas);
   const estadoPeso = await guardarSiCambio(db, 'articulos_peso_' + desde.slice(0, 7), pa, 'guardar_articulos_peso', { filas: pa });
+  const pr = primerasCuit(crudas);
+  const estadoPrim = await guardarSiCambio(db, 'primeras_' + desde.slice(0, 7), [pr], 'guardar_primeras', { p_cuits: pr.cuits, p_clientes: pr.clientes });
   const proveedores = [...new Set(filas.map((f: any) => f.proveedor))];
-  return { desde, hasta, lineas: crudas.length, filas: filas.length, articulosConPeso: pesos.size, lineasSinPeso: filas.sinPeso, sinPesoTop: filas.top, proveedores, estado, articulos: art.length, estadoArt, pesos: pa.length, estadoPeso };
+  return { desde, hasta, lineas: crudas.length, filas: filas.length, articulosConPeso: pesos.size, lineasSinPeso: filas.sinPeso, sinPesoTop: filas.top, proveedores, estado, articulos: art.length, estadoArt, pesos: pa.length, estadoPeso, cuits: pr.cuits.length, estadoPrim };
 }
 
 /* ---------- entrada ---------- */
@@ -373,6 +408,7 @@ Deno.serve(async (req: Request) => {
     if (solo === 'pedidos') out.pedidos = await syncPedidos(chess, db);
     if (solo === 'articulos') out.articulos = await syncArticulosCat(chess, db);
     if (solo === 'stock') out.stock = await syncStock(chess, db);
+    if (solo === 'primeras') out.primeras = await syncPrimeras(chess, db, url.searchParams.get('hasta') || hoyAR().slice(0, 7), Math.min(Number(url.searchParams.get('meses')) || 1, 6));
     if (solo === 'ventas') out.ventas = await syncVentas(chess, db, url.searchParams.get('mes') === 'anterior');
     return Response.json({ ok: true, ...out });
   } catch (e) {

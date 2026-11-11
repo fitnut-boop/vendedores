@@ -652,3 +652,20 @@ body.sin-scroll{overflow:hidden}
 .cuenta-caja h2{margin:0 0 6px}.cuenta-caja label{display:block;margin:10px 0 4px;font-weight:600}
 .cuenta-caja input{width:100%}.cuenta-caja small{display:block;color:var(--muted);margin-top:4px}
 .cuenta-acc{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+
+/* Métrica de Brenda */
+.bre-how{background:#fff8ea;border:1px solid #ecd48a;border-radius:14px;padding:12px 16px;margin:10px 0}
+.bre-how h3{margin:0 0 4px;font-size:15px}.bre-how ul{margin:6px 0 0;padding-left:20px}
+.bre-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:10px}
+.bre-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.bre-card small{font-size:11px;letter-spacing:.1em;color:var(--muted);font-weight:700}.bre-card h3{margin:2px 0 8px;font-size:17px}
+.bre-num{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.bre-num b{font:600 38px Georgia,serif}.bre-num b.ok{color:var(--ok)}.bre-num b.med{color:var(--med)}.bre-num b.bajo{color:var(--bajo)}.bre-num span{color:var(--muted);font-size:14px}
+.bre-barra{position:relative;height:16px;background:var(--line);border-radius:6px;margin:10px 0 6px}.bre-barra i{display:block;height:100%;border-radius:6px;background:var(--azul)}
+.bre-barra i.ok{background:var(--ok)}.bre-barra i.med{background:var(--med)}.bre-barra i.bajo{background:var(--bajo)}.bre-barra u{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink)}
+.bre-det{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px}.bre-det summary{cursor:pointer;font-weight:700}
+.bre-lista{margin-top:8px}.bre-fila{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:8px;padding:6px 0;border-top:1px solid var(--line);align-items:center}
+.bre-fila i{font-style:normal;font-weight:700}.bre-fila.si i{color:var(--ok)}.bre-fila.no i{color:var(--bajo)}.bre-fila small{color:var(--muted)}
+.bre-dist{display:flex;gap:10px;align-items:flex-end;margin:10px 0 14px;min-height:96px}.bre-d{display:flex;flex-direction:column;align-items:center;gap:3px}.bre-d i{display:block;width:26px;background:#c3cbe0;border-radius:4px}.bre-d.ok i{background:var(--ok)}.bre-d small{font-size:11px;color:var(--muted)}
+.bre-tabla{overflow-x:auto}.bre-tr{display:grid;grid-template-columns:minmax(170px,1.6fr) 36px repeat(9,minmax(52px,1fr));gap:4px;padding:6px 4px;border-top:1px solid var(--line);align-items:center;min-width:760px;font-size:13px}
+.bre-tr.cab{border-top:0;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.bre-tr .seg{text-align:center}.bre-tr.ok{background:#eef8f1}.bre-tr.med{background:#fff7e2}.bre-tr.no{background:#fdf0ee;color:var(--muted)}

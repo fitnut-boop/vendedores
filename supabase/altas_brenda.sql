@@ -17,10 +17,10 @@ language sql stable security definer set search_path = public as $$
            sum(vd.importe) as importe
     from ventas_dia vd where vd.fecha between desde and hasta group by vd.id_vendedor
   ),
-  cc as (   -- cliente con compra = su compra neta del período es positiva (las notas de crédito restan)
+  cc as (   -- cliente con compra = tuvo alguna factura con importe positivo en el período (igual que el Excel de avance del jefe)
     select t.id_vendedor, count(*) as con_compra
     from (select vd.id_vendedor, vd.id_cliente from ventas_dia vd where vd.fecha between desde and hasta
-          group by vd.id_vendedor, vd.id_cliente having sum(vd.kg) > 0 or sum(vd.importe) > 0) t
+          group by vd.id_vendedor, vd.id_cliente having max(vd.importe) > 0) t
     group by t.id_vendedor
   ),
   c as (
@@ -50,6 +50,14 @@ language sql stable security definer set search_path = public as $$
   where p.en_tablero
   order by p.orden, p.nombre_mostrar;
 $$;
+
+-- Clientes que el Excel del jefe cuenta en un grupo distinto al que dicen sus rutas de Chess
+create table if not exists brenda_grupo_manual (id_cliente integer primary key, grupo text not null check (grupo in ('A', 'B')), nota text);
+alter table brenda_grupo_manual enable row level security;
+insert into brenda_grupo_manual (id_cliente, grupo, nota) values
+  (1443, 'B', 'Alto Tejeda'), (389, 'B', 'Grupo al Campo'), (1260, 'B', 'Nueva Villa')
+on conflict (id_cliente) do nothing;
+-- (en brenda_metrica: grupo = coalesce(manual, regla por rutas) y ruta = coalesce(ruta_b, ruta_min) para los del grupo B)
 
 -- ===== Métrica de Brenda: un cliente en rutas de los dos grupos cuenta en el B; "compró" = tuvo facturación en el mes =====
 create or replace function brenda_metrica(desde date, hasta date) returns jsonb

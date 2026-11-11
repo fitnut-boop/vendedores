@@ -61,14 +61,14 @@ insert into feriados (fecha, descripcion) values
   ('2026-07-09', 'Día de la Independencia'),
   ('2026-08-17', 'Paso a la Inmortalidad del Gral. San Martín'),
   ('2026-10-12', 'Día del Respeto a la Diversidad Cultural'),
-  ('2026-11-09', 'Visita del Papa León XIV (feriado nacional, Decreto 1103/2026)'),
-  ('2026-11-10', 'Visita del Papa León XIV (feriado en Córdoba y CABA, Decreto 1103/2026)'),
   ('2026-11-23', 'Día de la Soberanía Nacional (trasladado del 20/11)'),
   ('2026-12-08', 'Inmaculada Concepción de María'),
   ('2026-12-25', 'Navidad')
 on conflict (fecha) do nothing;
 -- Si ya se había cargado una versión anterior con los días turísticos, se sacan:
 delete from feriados where fecha in ('2026-03-23', '2026-07-10', '2026-12-07');
+-- El 9/11 y el 10/11 (visita del Papa) la empresa trabajó: no se cuentan como feriados.
+delete from feriados where fecha in ('2026-11-09', '2026-11-10');
 
 -- ===== Lo mínimo que necesita el cotizador sin contraseña: precios y unidades por bulto =====
 drop policy if exists precios_publico   on precios;

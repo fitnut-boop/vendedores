@@ -34,8 +34,8 @@ function contarHabiles(desde, hasta) {
   return n;
 }
 
-// Días hábiles del mes, trabajados y restantes. Un día en curso se cuenta como trabajado recién a las 17 h
-// (o si es el primer día hábil del mes, para poder proyectar).
+// Días hábiles del mes, trabajados y restantes. El día en curso, si es hábil, cuenta como trabajado desde la mañana
+// ("día hábil 8 de 20"), igual que el Excel de avance del jefe.
 function infoMes(m) {
   const ini = primerDia(m), fin = new Date(m.getFullYear(), m.getMonth() + 1, 0), ahora = new Date();
   const hoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
@@ -46,7 +46,7 @@ function infoMes(m) {
   else {
     const ayer = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - 1);
     trab = ayer >= ini ? contarHabiles(ini, ayer) : 0;
-    if (esHabil(hoy) && (ahora.getHours() >= 17 || trab === 0)) trab += 1;
+    if (esHabil(hoy)) trab += 1;
     estado = 'en curso';
   }
   return { ini, fin, habiles, trab, restantes: Math.max(0, habiles - trab), avance: habiles ? trab / habiles * 100 : 0, estado };

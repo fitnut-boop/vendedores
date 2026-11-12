@@ -67,8 +67,10 @@ insert into feriados (fecha, descripcion) values
 on conflict (fecha) do nothing;
 -- Si ya se había cargado una versión anterior con los días turísticos, se sacan:
 delete from feriados where fecha in ('2026-03-23', '2026-07-10', '2026-12-07');
--- El 9/11 y el 10/11 (visita del Papa) la empresa trabajó: no se cuentan como feriados.
-delete from feriados where fecha in ('2026-11-09', '2026-11-10');
+-- El 9/11 y el 10/11 (visita del Papa) la empresa NO trabajó (decisión del 12/11/2026): cuentan como días no laborables.
+-- (Antes se habían sacado de esta tabla; si hay que volver a contarlos como hábiles: delete from feriados where fecha in ('2026-11-09','2026-11-10');)
+insert into feriados (fecha, descripcion) values ('2026-11-09', 'Sin actividad'), ('2026-11-10', 'Sin actividad')
+on conflict (fecha) do update set descripcion = excluded.descripcion;
 
 -- ===== Lo mínimo que necesita el cotizador sin contraseña: precios y unidades por bulto =====
 drop policy if exists precios_publico   on precios;

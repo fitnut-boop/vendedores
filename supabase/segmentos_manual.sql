@@ -7,7 +7,8 @@ insert into articulos_segmento_manual (id_articulo, segmento, nota) values
  (1048,'CPW','Cookie Crisp (Cereales)'),
  (1049,'CAFE','Nescafe RTD'),(1050,'CAFE','Nescafe RTD'),(1051,'CAFE','Nescafe RTD'),(1072,'CAFE','Starbucks RTD'),(1073,'CAFE','Starbucks RTD'),
  (1064,'CAFE','Seattle Best Coffee T&M'),(1065,'CAFE','Seattle Best Coffee T&M'),(1071,'CAFE','Nescafe Dolce Gusto Genio S'),
- (1069,'HILERET','Fruto del monje Hileret'),(1070,'HILERET','Fruto del monje Hileret')
+ (1069,'HILERET','Fruto del monje Hileret'),(1070,'HILERET','Fruto del monje Hileret'),
+ (903,'NHSCIENCE','Nutren Protein RTD'),(904,'NHSCIENCE','Nutren Protein RTD')
 on conflict (id_articulo) do update set segmento = excluded.segmento, nota = excluded.nota;
 create or replace function articulos_cat_segmento_manual() returns trigger language plpgsql as $$
 begin

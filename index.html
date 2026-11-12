@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a1a3f">
 <title>App Vendedores</title>
-<link rel="stylesheet" href="styles.css?v=202611111210">
+<link rel="stylesheet" href="styles.css?v=202611121000">
 </head>
 <body>
 <header class="top">
@@ -70,6 +70,30 @@
     <button class="btn" id="lBtn" type="submit" style="width:100%;margin-top:14px">Entrar</button>
     <p id="lMsg" class="msg" role="alert"></p>
     <button type="button" id="lToggle" class="link">¿Sos vendedor y todavía no tenés cuenta? Crear cuenta</button>
+    <button type="button" id="lOlvide" class="link">Olvidé mi contraseña</button>
+  </form>
+
+  <form id="recForm" class="card" hidden>
+    <button type="button" id="rcCerrar" class="cerrar" aria-label="Cerrar">×</button>
+    <h2>Recuperar contraseña</h2>
+    <p class="hint">Escribí tu usuario (o tu mail). Te mandamos un link al mail que cargaste en "Mi cuenta".</p>
+    <label for="rcUsuario">Usuario o email</label>
+    <input id="rcUsuario" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    <button class="btn" type="submit" style="width:100%;margin-top:14px">Enviarme el link</button>
+    <p id="rcMsg" class="msg" role="alert"></p>
+    <button type="button" id="rcVolver" class="link">Volver a ingresar</button>
+  </form>
+
+  <form id="nuevaForm" class="card" hidden>
+    <button type="button" id="nvCerrar" class="cerrar" aria-label="Cerrar">×</button>
+    <h2>Elegí tu contraseña nueva</h2>
+    <label for="nvPass">Contraseña nueva</label>
+    <input id="nvPass" type="password" autocomplete="new-password" minlength="8" required>
+    <label for="nvPass2" style="margin-top:10px">Repetila</label>
+    <input id="nvPass2" type="password" autocomplete="new-password" minlength="8" required>
+    <small>Mínimo 8 caracteres.</small>
+    <button class="btn" type="submit" style="width:100%;margin-top:14px">Guardar contraseña</button>
+    <p id="nvMsg" class="msg" role="alert"></p>
   </form>
 
   <div id="pendiente" class="card" hidden>
@@ -373,15 +397,16 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=202611111210"></script>
-<script src="app.js?v=202611111210"></script>
-<script src="gestion.js?v=202611111210"></script>
-<script src="tablero.js?v=202611111210"></script>
-<script src="reconocimientos.js?v=202611111210"></script>
-<script src="concursos.js?v=202611111210"></script>
-<script src="lista.js?v=202611111210"></script>
-<script src="cuenta.js?v=202611111210"></script>
-<script src="brenda.js?v=202611111210"></script>
-<script src="carpeta.js?v=202611111210"></script>
+<script src="config.js?v=202611121000"></script>
+<script src="app.js?v=202611121000"></script>
+<script src="gestion.js?v=202611121000"></script>
+<script src="tablero.js?v=202611121000"></script>
+<script src="reconocimientos.js?v=202611121000"></script>
+<script src="concursos.js?v=202611121000"></script>
+<script src="lista.js?v=202611121000"></script>
+<script src="cuenta.js?v=202611121000"></script>
+<script src="brenda.js?v=202611121000"></script>
+<script src="recuperar.js?v=202611121000"></script>
+<script src="carpeta.js?v=202611121000"></script>
 </body>
 </html>

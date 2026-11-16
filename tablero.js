@@ -331,8 +331,9 @@ document.querySelectorAll('.seg button[data-k]').forEach(b => b.addEventListener
 document.querySelectorAll('.subtabs button[data-v]').forEach(b => b.addEventListener('click', () => {
   vistaRes = b.dataset.v;
   document.querySelectorAll('.subtabs button[data-v]').forEach(x => x.classList.toggle('on', x === b));
-  $('#vistaRes').hidden = vistaRes !== 'res'; $('#vistaBees').hidden = vistaRes !== 'bees';
+  $('#vistaRes').hidden = vistaRes !== 'res'; $('#vistaBees').hidden = vistaRes !== 'bees'; $('#vistaCat').hidden = vistaRes !== 'cat';
   if (vistaRes === 'bees') renderBees();
+  if (vistaRes === 'cat') { $('#catMes').textContent = `${NOMBRE_MES(mesRes)} ${mesRes.getFullYear()}`; cargarCategorias(); }
 }));
 document.addEventListener('tabcambio', e => { if (e.detail === 'res') cargarResumen(); });
 setInterval(() => { if (!$('#tab-res').hidden && document.visibilityState === 'visible') cargarResumen(); }, 5 * 60 * 1000);

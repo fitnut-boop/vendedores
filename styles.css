@@ -670,3 +670,24 @@ body.sin-scroll{overflow:hidden}
 .bre-tabla{overflow-x:auto}.bre-tr{display:grid;grid-template-columns:minmax(170px,1.6fr) 36px repeat(9,minmax(52px,1fr));gap:4px;padding:6px 4px;border-top:1px solid var(--line);align-items:center;min-width:760px;font-size:13px}
 .bre-tr.cab{border-top:0;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
 .bre-tr .seg{text-align:center}.bre-tr.ok{background:#eef8f1}.bre-tr.med{background:#fff7e2}.bre-tr.no{background:#fdf0ee;color:var(--muted)}
+
+/* ===== Avance por categoría ===== */
+.cat-tit{margin:4px 0 2px}
+.cat-wrap{overflow-x:auto;margin-top:12px;border-radius:14px}
+.cat-tabla{min-width:880px;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.cat-tr{display:grid;grid-template-columns:minmax(150px,1.5fr) 80px 80px 80px 72px 110px 92px 92px 80px 86px;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);font-size:14px}
+.cat-tr.cab{background:#14306F;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;border-top:0}
+.cat-tr .nom{font-weight:700}
+.cat-tr .num{text-align:right;font-variant-numeric:tabular-nums}
+.cat-tr.cab span:not(:first-child){text-align:right}
+.cat-tr .ok{color:#15803d}.cat-tr .bajo{color:#b45309}
+.cat-tr .sube{color:#15803d}.cat-tr .baja{color:#b91c1c}
+.cat-tr.total{background:#1b2a4a;color:#fff;font-weight:700}.cat-tr.total .num,.cat-tr.total .nom{color:#fff}
+.cat-tr.total .sube{color:#86efac}.cat-tr.total .baja{color:#fca5a5}.cat-tr.total .ok,.cat-tr.total .bajo{color:#fff}
+.cat-tr.sub{background:#2d4166}
+.cat-barra{position:relative;display:block;height:10px;background:#e5e7eb;border-radius:6px}
+.cat-barra i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:#e0a800}.cat-barra i.ok{background:#2563eb}
+.cat-barra u{position:absolute;top:-3px;bottom:-3px;width:2px;background:#111;text-decoration:none}
+.cat-est{justify-self:end;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;text-transform:uppercase}
+.cat-est.ok{background:#dcfce7;color:#166534}.cat-est.bajo{background:#fef3c7;color:#92400e}
+.cat-tr.total .cat-est.ok{background:#dcfce7;color:#166534}.cat-tr.total .cat-est.bajo{background:#fef3c7;color:#92400e}

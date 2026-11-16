@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a1a3f">
 <title>App Vendedores</title>
-<link rel="stylesheet" href="styles.css?v=202611121000">
+<link rel="stylesheet" href="styles.css?v=202611161000">
 </head>
 <body>
 <header class="top">
@@ -116,6 +116,7 @@
     <p id="resFrase" class="frase"></p>
     <div class="subtabs" role="tablist" aria-label="Vista del resumen">
       <button type="button" data-v="res" class="on">Resumen</button>
+      <button type="button" data-v="cat">Categorías</button>
       <button type="button" data-v="bees">Bees <small>boceto</small></button>
     </div>
   </section>
@@ -150,6 +151,14 @@
       </section>
     </div>
     <p class="leyenda"><i class="d ok"></i> En ritmo ≥ 100% <i class="d med"></i> Cerca ≥ 85% <i class="d bajo"></i> Atrasado</p>
+  </div>
+
+  <div id="vistaCat" hidden>
+    <h3 class="cat-tit">Proyección por categoría · <span id="catMes"></span></h3>
+    <p id="catEstado" class="hint"></p>
+    <section class="kcards" id="catCards"></section>
+    <div id="catCont" class="cat-wrap"></div>
+    <p id="catNota" class="hint"></p>
   </div>
 
   <div id="vistaBees" hidden>
@@ -397,16 +406,17 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=202611121000"></script>
-<script src="app.js?v=202611121000"></script>
-<script src="gestion.js?v=202611121000"></script>
-<script src="tablero.js?v=202611121000"></script>
-<script src="reconocimientos.js?v=202611121000"></script>
-<script src="concursos.js?v=202611121000"></script>
-<script src="lista.js?v=202611121000"></script>
-<script src="cuenta.js?v=202611121000"></script>
-<script src="brenda.js?v=202611121000"></script>
-<script src="recuperar.js?v=202611121000"></script>
-<script src="carpeta.js?v=202611121000"></script>
+<script src="config.js?v=202611161000"></script>
+<script src="app.js?v=202611161000"></script>
+<script src="gestion.js?v=202611161000"></script>
+<script src="tablero.js?v=202611161000"></script>
+<script src="reconocimientos.js?v=202611161000"></script>
+<script src="concursos.js?v=202611161000"></script>
+<script src="lista.js?v=202611161000"></script>
+<script src="cuenta.js?v=202611161000"></script>
+<script src="brenda.js?v=202611161000"></script>
+<script src="categorias.js?v=202611161000"></script>
+<script src="recuperar.js?v=202611161000"></script>
+<script src="carpeta.js?v=202611161000"></script>
 </body>
 </html>

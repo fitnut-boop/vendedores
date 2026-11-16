@@ -1,0 +1,6 @@
+-- Avance por categoría (Resumen > Categorías): objetivos por categoría, kilos por categoría y comparaciones.
+-- Objetivos: Excel "Objetivos Plan Comercial Nestlé <Mes> <Año>.xlsx" (sección "Carga bot"), cargado por Apps Script (cargar_objetivos_categoria_ext).
+-- Los meses sin objetivos usan los del último mes cargado. NHSCIENCE se cuenta dentro de FORMULAS (como en el plan de Nestlé).
+-- (El SQL completo aplicado en la base está en el historial del proyecto; acá queda el resumen de objetos creados.)
+--   tablas: objetivos_categoria(periodo, categoria, obj_kg), categoria_mes(periodo, categoria, kg)  -- esta última para el año anterior
+--   funciones: categoria_de(seg), categorias_avance(desde, hasta), cargar_objetivos_categoria_ext(p_token, p_periodo, filas)

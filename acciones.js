@@ -26,11 +26,17 @@ async function cargarAcciones() {
 }
 
 // Bonificación efectiva hoy de una fila: la parte Nestlé vence en su fecha; la parte FitNut sigue vigente mientras esté el archivo.
+// Un archivo de hace más de 3 meses se considera desactualizado: no se sugiere ni se muestra como vigente
+function accViejo(periodo) {
+  const d = new Date(); d.setMonth(d.getMonth() - 3);
+  return String(periodo || '') < d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01';
+}
 function accEfectiva(f) {
   const hoy = accHoy(), venceNestle = f.nestle_hasta && f.nestle_hasta < hoy;
   const fit = Number(f.bonif_fitnut) || 0, ad = venceNestle ? 0 : (Number(f.bonif_adicional) || 0);
-  const vencida = fit + ad === 0 && (Number(f.bonif_total) || 0) > 0;
-  return { fit, ad, total: fit + ad, vencida, venceNestle };
+  const viejo = accViejo(f.periodo);
+  const vencida = viejo || (fit + ad === 0 && (Number(f.bonif_total) || 0) > 0);
+  return { fit: viejo ? 0 : fit, ad: viejo ? 0 : ad, total: viejo ? 0 : fit + ad, vencida, venceNestle, viejo };
 }
 
 /* ---------- apartado de consulta ---------- */
@@ -57,7 +63,7 @@ function pintarAcciones() {
   const hoy = accHoy();
   const filas = ACC.filas.filter(f => f.segmento === accSeg && (accProv === 'TODOS' || f.proveedor === accProv))
     .map(f => ({ f, e: accEfectiva(f) })).filter(x => accVencidas || !x.e.vencida);
-  const combos = ACC.combos.filter(c => c.segmento === accSeg && (accProv === 'TODOS' || c.proveedor === accProv) && (accVencidas || !c.hasta || c.hasta >= hoy));
+  const combos = ACC.combos.filter(c => c.segmento === accSeg && (accProv === 'TODOS' || c.proveedor === accProv) && (accVencidas || ((!c.hasta || c.hasta >= hoy) && !accViejo(c.periodo))));
 
   // Combos
   const h1 = document.createElement('h4'); h1.className = 'acc-h'; h1.textContent = `Combos (${combos.length})`; cont.append(h1);
@@ -95,6 +101,7 @@ function filaAccion(f, e) {
   const cond = [];
   if (f.regla === 'combinada') cond.push(`Mínimo ${nf0.format(f.unidades_min)} u combinadas${f.grupo ? ' (grupo ' + f.grupo + ')' : ''}${f.chess_id ? ' · acción ' + f.chess_id : ''}`);
   else cond.push(`Mínimo ${nf0.format(f.unidades_min)} u por producto${f.chess_id ? ' · acción ' + f.chess_id : ''}`);
+  if (e.viejo) cond.push('Archivo desactualizado (' + String(f.periodo).slice(5, 7) + '/' + String(f.periodo).slice(0, 4) + ')');
   if (f.nestle_hasta) cond.push(`Nestlé ${Number(f.bonif_adicional)}% ${e.venceNestle ? 'vencida el' : 'hasta'} ${accFechaTxt(f.nestle_hasta)}`);
   r.append(celda(f.producto, 'nom'), celda(nf0.format(f.unidades_min), 'num'), celda(money(f.costo), 'num'), celda(e.total ? accPct(e.total) : '—', 'num b'),
     celda(money(conAccion), 'num b'), celda(f.pvp ? money(f.pvp) : '—', 'num'), celda(cond.join(' · '), 'cond'));

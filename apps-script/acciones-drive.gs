@@ -4,7 +4,8 @@
  * Va en el MISMO proyecto de Apps Script que objetivos-drive.gs (usa SUPABASE_URL, sinTildes y las propiedades SUPABASE_ANON_KEY / TOKEN_OBJETIVOS).
  * Hojas del Excel: "Acciones AASS|Generales|Mayorista" y "Combos Auto|Gene|Mayo". Se corre sola desde sincronizarCuentas (cada 2 horas) y solo sube si el archivo cambió.
  */
-const CARPETA_ACCIONES_ID = '1_usl5lMBFm2IY8CX9hBKBGSq7eQUG5TP';
+// Carpetas de cada proveedor (Nestle, Purina, Hileret): adentro tienen Año > Mes con los Excel de acciones
+const CARPETAS_ACCIONES = ['1_usl5lMBFm2IY8CX9hBKBGSq7eQUG5TP', '1ArMa8_OnTUnf-RiCS1JqRYrRghEpVFuc', '1aTSnaCilyFcJdNKgkt_SQzQ-l5j-MAV8'];
 
 function sincronizarAcciones() {
   const props = PropertiesService.getScriptProperties();
@@ -13,7 +14,7 @@ function sincronizarAcciones() {
 
   // el archivo más nuevo (por mes del nombre; si empatan, el modificado último) de cada proveedor
   const mejor = {};
-  (function recorrer(carpeta, nivel) {
+  const recorrerAcc = function recorrer(carpeta, nivel) {
     const archivos = carpeta.getFiles();
     while (archivos.hasNext()) {
       const f = archivos.next();
@@ -23,14 +24,15 @@ function sincronizarAcciones() {
       const act = mejor[prov];
       if (!act || periodo > act.periodo || (periodo === act.periodo && f.getLastUpdated() > act.f.getLastUpdated())) mejor[prov] = { f: f, periodo: periodo };
     }
-    if (nivel >= 3) return;
+    if (nivel >= 4) return;
     const subs = carpeta.getFolders();
     while (subs.hasNext()) {
       const s = subs.next();
       if (/eliminar|whatsapp/i.test(s.getName())) continue;     // copias viejas y adjuntos
-      recorrer(s, nivel + 1);
+      recorrerAcc(s, nivel + 1);
     }
-  })(DriveApp.getFolderById(CARPETA_ACCIONES_ID), 0);
+  };
+  for (const id of CARPETAS_ACCIONES) { try { recorrerAcc(DriveApp.getFolderById(id), 0); } catch (e) { Logger.log('Carpeta ' + id + ': ' + e.message); } }
 
   for (const prov of Object.keys(mejor)) {
     const f = mejor[prov].f, periodo = mejor[prov].periodo;

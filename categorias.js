@@ -34,7 +34,16 @@ function catSuma(filas, nombre, info) {
 
 function catPctTxt(v) { return v == null ? '—' : `${v >= 0 ? '+' : '−'}${nf1.format(Math.abs(v))}%`; }
 
+let catModo = 'kg';   // 'kg' | 'ccc'
+const SEG_NOMBRE = { 'CAPSULAS DG': 'Cápsulas DG', TORRADOS: 'Torrados', 'BEBIDAS POLVO': 'Bebidas Polvo' };
+document.querySelectorAll('[data-cm]').forEach(b => b.addEventListener('click', () => {
+  catModo = b.dataset.cm;
+  document.querySelectorAll('[data-cm]').forEach(x => x.classList.toggle('on', x === b));
+  cargarCategorias();
+}));
+
 async function cargarCategorias() {
+  if (catModo === 'ccc') return cargarCCC();
   const cont = $('#catCont'), est = $('#catEstado');
   if (!sb) { est.textContent = 'Disponible al conectar con Supabase.'; return; }
   await cargarFeriados();
@@ -90,3 +99,49 @@ async function cargarCategorias() {
 // Se recarga cuando se abre la vista o cambia el mes
 const _cargarResumenCat = cargarResumen;
 cargarResumen = async function () { await _cargarResumenCat(); if (vistaRes === 'cat') cargarCategorias(); };
+
+/* ---------- Clientes con compra por categoría y por segmento del plan Nestlé ---------- */
+async function cargarCCC() {
+  const cont = $('#catCont'), est = $('#catEstado');
+  if (!sb) { est.textContent = 'Disponible al conectar con Supabase.'; return; }
+  await cargarFeriados();
+  const info = infoMes(mesRes);
+  est.textContent = 'Cargando…'; cont.replaceChildren(); $('#catCards').replaceChildren();
+  const { data, error } = await sb.rpc('ccc_avance', { desde: iso(info.ini), hasta: iso(info.fin) });
+  if (error) { est.textContent = msgErr(error); return; }
+  const corte = info.estado === 'en curso' ? new Date() : info.fin;
+  est.textContent = `Al ${corte.toLocaleDateString('es-AR')} · día hábil ${info.trab} de ${info.habiles} · clientes que compraron en cada categoría (neto positivo en el mes)`;
+  const mesAnt = new Date(mesRes.getFullYear(), mesRes.getMonth() - 1, 1), etMes = `${NOMBRE_MES(mesAnt).slice(0, 3)} ${String(mesAnt.getFullYear()).slice(2)}`;
+  const calc = r => {
+    const acum = Number(r.ccc) || 0, ant = Number(r.ccc_mes_ant) || 0, obj = r.obj != null ? Number(r.obj) : null, p = proyectar(acum, info), base = p == null ? acum : p;
+    const falta = obj != null ? Math.max(0, obj - acum) : null;
+    return { clave: r.clave, tipo: r.tipo, acum, proy: base, obj, ant, pct: obj > 0 ? base / obj * 100 : null, vsMes: ant > 0 ? (base / ant - 1) * 100 : null,
+      dia: falta == null ? null : info.restantes > 0 ? falta / info.restantes : (falta > 0 ? null : 0) };
+  };
+  const filas = (data || []).map(calc);
+  const cats = filas.filter(f => f.tipo === 'cat').sort((a, b) => (a.pct ?? 999) - (b.pct ?? 999) || b.acum - a.acum);
+  const segs = filas.filter(f => f.tipo === 'seg').sort((a, b) => (a.pct ?? 999) - (b.pct ?? 999));
+  if (!cats.length && !segs.some(f => f.acum)) { est.textContent = 'Todavía no hay ventas por categoría para este mes.'; return; }
+  const est2 = p => (p == null ? 'nd' : p >= 100 ? 'ok' : 'bajo');
+
+  $('#catCards').replaceChildren(...segs.map(f => tarjeta(`CCC ${SEG_NOMBRE[f.clave] || f.clave}`, nf0.format(f.acum), f.pct == null ? null : f.pct,
+    [f.obj != null ? `Objetivo ${nf0.format(f.obj)} clientes · proyección ${nf0.format(f.proy)}` : 'Sin objetivo cargado', `vs ${etMes} ${catPctTxt(f.vsMes)}`], '', est2(f.pct))));
+
+  const tabla = el('div', 'cat-tabla'), cab = el('div', 'cat-tr ccc cab');
+  for (const t of ['Categoría', 'Clientes acum.', 'Clientes proy.', 'Objetivo', 'Proy. vs obj.', '', `vs mes ant. (${etMes})`, 'Clientes/día nec.', 'Estado']) cab.append(el('span', null, t));
+  tabla.append(cab);
+  const fila = (f, nombre) => {
+    const e = est2(f.pct), r = el('div', 'cat-tr ccc');
+    const barra = el('span', 'cat-barra'), i = el('i', e), m = el('u');
+    i.style.width = f.pct == null ? '0%' : Math.min(100, Math.max(0, f.pct) / 130 * 100) + '%'; m.style.left = (100 / 130 * 100) + '%'; barra.append(i, m);
+    r.append(el('span', 'nom', nombre), el('span', 'num', nf0.format(f.acum)), el('span', 'num', nf0.format(f.proy)), el('span', 'num', f.obj != null ? nf0.format(f.obj) : '—'),
+      el('b', 'num ' + e, f.pct == null ? '—' : nf1.format(f.pct) + '%'), barra, el('span', 'num ' + (f.vsMes == null ? '' : f.vsMes >= 0 ? 'sube' : 'baja'), catPctTxt(f.vsMes)),
+      el('span', 'num', f.dia == null ? '—' : nf0.format(Math.ceil(f.dia))), el('span', 'cat-est ' + e, e === 'ok' ? 'En ritmo' : e === 'bajo' ? 'Atrasado' : '—'));
+    return r;
+  };
+  const sec = t => el('div', 'cat-sec', t);
+  tabla.append(sec('Por categoría'), ...cats.map(f => fila(f, catNom(f.clave))), sec('Segmentos del plan Nestlé'), ...segs.map(f => fila(f, SEG_NOMBRE[f.clave] || f.clave)));
+  cont.replaceChildren(tabla);
+  $('#catNota').textContent = 'Cliente con compra = compró esa categoría o segmento en el mes (neto positivo, sin contar devoluciones). Los segmentos del plan (Cápsulas DG, Torrados sin la presentación de 40 g y Bebidas Polvo) tienen objetivo de Nestlé; las categorías todavía no tienen objetivo de clientes cargado.' +
+    ' La proyección sigue el mismo ritmo que los kilos.';
+}

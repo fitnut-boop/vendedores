@@ -6,3 +6,5 @@
 --   funciones: categoria_de(seg), categorias_avance(desde, hasta), cargar_objetivos_categoria_ext(p_token, p_periodo, filas)
 --   historial por artículo (para comparar con el año anterior): tabla articulo_mes(periodo, id_articulo, art, kg), cargada por sync-chess ?tarea=categorias&mes=AAAA-MM
 --   (guardar_articulo_mes). La categoría se resuelve al consultar: articulos_cat.segmento, o articulos_segmento_manual para artículos dados de baja.
+--   clientes con compra: tablas objetivos_ccc(periodo, clave, obj) y segmento_plan(id_articulo, clave); funcion ccc_avance(desde, hasta).
+--   Segmentos del plan Nestlé (objetivo nov-26): CAPSULAS DG 179, TORRADOS 712, BEBIDAS POLVO 567. Las categorías no tienen objetivo de clientes cargado todavía.

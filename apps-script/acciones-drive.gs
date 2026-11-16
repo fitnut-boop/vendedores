@@ -60,8 +60,8 @@ function leerAcciones(archivo, periodo) {
       const seg = /aass|auto/.test(nombre) ? 'AASS' : /gene/.test(nombre) ? 'GENERAL' : /mayo/.test(nombre) ? 'MAYORISTA' : null;
       if (!seg) continue;
       const datos = hoja.getDataRange().getValues();
-      if (/^acciones/.test(nombre)) filas.push.apply(filas, accFilas(datos, seg, periodo));
-      else if (/^combos/.test(nombre)) combos.push.apply(combos, accCombos(datos, seg, periodo));
+      if (/^combos/.test(nombre)) combos.push.apply(combos, accCombos(datos, seg, periodo));
+      else if (!/^control/.test(nombre)) filas.push.apply(filas, accFilas(datos, seg, periodo));   // 'Acciones ...' (Nestlé) o 'General' / 'Mayorista' (Purina)
     }
   } finally {
     DriveApp.getFileById(tmp.id).setTrashed(true);
@@ -100,7 +100,7 @@ function accFilas(datos, seg, periodo) {
     ean: col(c => c.indexOf('ean') >= 0), prod: col(c => c.indexOf('producto') === 0), min: col(c => c.indexOf('unidades') === 0),
     costo: col(c => c === 'costo unitario'), bf: col(c => c.indexOf('bonif. fitnut') === 0), ad: col(c => c.indexOf('adicional') === 0),
     bt: col(c => c.indexOf('bonificacion total') === 0), ca: col(c => c.indexOf('costo unitario con') === 0), pc: col(c => c.indexOf('precio combo') === 0),
-    pvp: col(c => c.indexOf('pvp') === 0), an: col(c => c.indexOf('accion nestle') === 0), ac: col(c => c.indexOf('accion chess') === 0)
+    bon: col(c => c === 'bonificacion'), pvp: col(c => c.indexOf('pvp') === 0 || c.indexOf('sugerido') >= 0), an: col(c => c.indexOf('accion nestle') === 0), ac: col(c => c.indexOf('accion chess') === 0)
   };
   const out = [];
   let categoria = '';
@@ -116,7 +116,7 @@ function accFilas(datos, seg, periodo) {
     const grupo = /grupo\s+(.+)$/i.exec(chessTxt);
     out.push({
       segmento: seg, categoria: categoria, id_articulo: Number(c0), ean: String(f[i.ean] || ''), producto: String(f[i.prod] || '').trim(),
-      unidades_min: accNum(f[i.min]), costo: accNum(f[i.costo]), bonif_fitnut: accPct(f[i.bf]), bonif_adicional: accPct(f[i.ad]), bonif_total: accPct(f[i.bt]),
+      unidades_min: accNum(f[i.min]), costo: accNum(f[i.costo]), bonif_fitnut: accPct(f[i.bf]), bonif_adicional: accPct(i.ad >= 0 ? f[i.ad] : (i.bon >= 0 ? f[i.bon] : null)), bonif_total: accPct(i.bt >= 0 ? f[i.bt] : (i.bon >= 0 ? f[i.bon] : null)),
       costo_accion: accNum(f[i.ca]), precio_combo: accNum(f[i.pc]), pvp: accNum(f[i.pvp]),
       accion_nestle: String(f[i.an] || ''), nestle_id: nes.id, nestle_hasta: nes.hasta,
       accion_chess: chessTxt, chess_id: mc ? mc[1] : '', grupo: grupo ? grupo[1].trim() : '',

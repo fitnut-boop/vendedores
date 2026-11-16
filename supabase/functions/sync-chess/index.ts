@@ -379,6 +379,33 @@ async function syncVentas(chess: Chess, db: any, anterior: boolean) {
   return { desde, hasta, lineas: crudas.length, filas: filas.length, articulosConPeso: pesos.size, lineasSinPeso: filas.sinPeso, sinPesoTop: filas.top, proveedores, estado, articulos: art.length, estadoArt, pesos: pa.length, estadoPeso, cuits: pr.cuits.length, estadoPrim };
 }
 
+// Kilos por artículo de uno o más meses seguidos hacia atrás desde "mes" (AAAA-MM). La categoría se resuelve en la base (articulos_cat + segmentos manuales),
+// así los artículos dados de baja se pueden corregir sin volver a pedirle datos a Chess. kg de la línea = unimedtotal (igual que ventas_dia).
+async function syncCategoriasMes(chess: Chess, db: any, mes: string, meses: number) {
+  const out: any[] = [];
+  let [y, m] = mes.split('-').map(Number);
+  for (let i = 0; i < meses; i++) {
+    const ini = new Date(Date.UTC(y, m - 1, 1)).toISOString().slice(0, 10), fin = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+    const crudas = await chess.todos('/ventas/', (l) => [l.idEmpresa, l.idDocumento, l.letra, l.serie, l.nrodoc, l.idLinea].join('|'), { fechaDesde: ini, fechaHasta: fin, detallado: true });
+    const por = new Map<number, any>();
+    for (const l of crudas) {
+      if (l.anulado === true || l.anulado === 'SI') continue;
+      const a = num(l.idArticulo); if (a == null) continue;
+      const bultos = num(l.cantidadesTotal) ?? 0, pesoBulto = num(l.peso), um = num(l.unimedtotal);
+      const kg = um != null && (um !== 0 || bultos === 0) ? um : pesoBulto ? bultos * pesoBulto : (num(l.pesoTotal) ?? 0);
+      const x = por.get(a) ?? { id_articulo: a, art: txt(l.dsArticulo), kg: 0 };
+      x.kg += kg; por.set(a, x);
+    }
+    const filas = [...por.values()].map((x) => ({ ...x, kg: Math.round(x.kg * 100) / 100 }));
+    if (!filas.length) throw new Error('Chess devolvió 0 ventas entre ' + ini + ' y ' + fin + ': no se guarda nada.');
+    const { error: e2 } = await db.rpc('guardar_articulo_mes', { p_periodo: ini, p_filas: filas });
+    if (e2) throw new Error(e2.message);
+    out.push({ mes: ini.slice(0, 7), lineas: crudas.length, articulos: filas.length, kg: Math.round(filas.reduce((s, f) => s + f.kg, 0)) });
+    m--; if (m === 0) { m = 12; y--; }
+  }
+  return out;
+}
+
 /* ---------- entrada ---------- */
 
 Deno.serve(async (req: Request) => {
@@ -410,6 +437,7 @@ Deno.serve(async (req: Request) => {
     if (solo === 'stock') out.stock = await syncStock(chess, db);
     if (solo === 'primeras') out.primeras = await syncPrimeras(chess, db, url.searchParams.get('hasta') || hoyAR().slice(0, 7), Math.min(Number(url.searchParams.get('meses')) || 1, 6));
     if (solo === 'ventas') out.ventas = await syncVentas(chess, db, url.searchParams.get('mes') === 'anterior');
+    if (solo === 'categorias') out.categorias = await syncCategoriasMes(chess, db, url.searchParams.get('mes') || hoyAR().slice(0, 7), Math.min(Number(url.searchParams.get('meses')) || 1, 3));
     return Response.json({ ok: true, ...out });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

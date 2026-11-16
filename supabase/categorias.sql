@@ -4,3 +4,5 @@
 -- (El SQL completo aplicado en la base está en el historial del proyecto; acá queda el resumen de objetos creados.)
 --   tablas: objetivos_categoria(periodo, categoria, obj_kg), categoria_mes(periodo, categoria, kg)  -- esta última para el año anterior
 --   funciones: categoria_de(seg), categorias_avance(desde, hasta), cargar_objetivos_categoria_ext(p_token, p_periodo, filas)
+--   historial por artículo (para comparar con el año anterior): tabla articulo_mes(periodo, id_articulo, art, kg), cargada por sync-chess ?tarea=categorias&mes=AAAA-MM
+--   (guardar_articulo_mes). La categoría se resuelve al consultar: articulos_cat.segmento, o articulos_segmento_manual para artículos dados de baja.

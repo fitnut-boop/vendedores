@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a1a3f">
 <title>App Vendedores</title>
-<link rel="stylesheet" href="styles.css?v=202611161100">
+<link rel="stylesheet" href="styles.css?v=202611161200">
 </head>
 <body>
 <header class="top">
@@ -196,6 +196,13 @@
         <option value="f" disabled>Farmacia (próximamente)</option>
       </select>
     </div>
+    <div class="f">
+      <label for="accTipo">Acciones comerciales</label>
+      <select id="accTipo">
+        <option value="auto">Según el segmento</option>
+        <option value="AASS">Autoservicios</option>
+      </select>
+    </div>
   </section>
 
   <section class="card">
@@ -270,6 +277,18 @@
       <h3 class="lp-sub">Catálogo de productos</h3>
       <p class="hint">Catálogo FitNut de noviembre 2026: Nestlé, Purina e Hileret, con los códigos de cada producto (PDF, 24 MB).</p>
       <a class="btn" id="lpCatalogo" href="descargas/Catalogo_FitNut.pdf" download="Catalogo FitNut Nov 2026.pdf">Descargar catálogo (PDF)</a>
+
+      <h3 class="lp-sub">Acciones y combos vigentes</h3>
+      <p class="hint">Acciones comerciales y combos de cada proveedor, según el tipo de cliente. En el cotizador, cuando los productos cumplen el mínimo, te <b>sugiere</b> el descuento (no lo aplica solo).</p>
+      <div class="seg" id="accSeg" role="group" aria-label="Segmento">
+        <button type="button" class="on" data-s="GENERAL">General</button>
+        <button type="button" data-s="AASS">Autoservicios</button>
+        <button type="button" data-s="MAYORISTA">Mayorista</button>
+      </div>
+      <div class="seg" id="accProv" role="group" aria-label="Proveedor" style="margin-top:8px"></div>
+      <label class="cmp-mes"><input type="checkbox" id="accVencidas"> Ver también las vencidas</label>
+      <p id="accInfo" class="hint"></p>
+      <div id="accCont" class="acc-cont"></div>
     </section>
 
     <section class="card sub" id="sub-rec" hidden>
@@ -409,17 +428,18 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=202611161100"></script>
-<script src="app.js?v=202611161100"></script>
-<script src="gestion.js?v=202611161100"></script>
-<script src="tablero.js?v=202611161100"></script>
-<script src="reconocimientos.js?v=202611161100"></script>
-<script src="concursos.js?v=202611161100"></script>
-<script src="lista.js?v=202611161100"></script>
-<script src="cuenta.js?v=202611161100"></script>
-<script src="brenda.js?v=202611161100"></script>
-<script src="categorias.js?v=202611161100"></script>
-<script src="recuperar.js?v=202611161100"></script>
-<script src="carpeta.js?v=202611161100"></script>
+<script src="config.js?v=202611161200"></script>
+<script src="app.js?v=202611161200"></script>
+<script src="gestion.js?v=202611161200"></script>
+<script src="tablero.js?v=202611161200"></script>
+<script src="reconocimientos.js?v=202611161200"></script>
+<script src="concursos.js?v=202611161200"></script>
+<script src="lista.js?v=202611161200"></script>
+<script src="cuenta.js?v=202611161200"></script>
+<script src="brenda.js?v=202611161200"></script>
+<script src="categorias.js?v=202611161200"></script>
+<script src="acciones.js?v=202611161200"></script>
+<script src="recuperar.js?v=202611161200"></script>
+<script src="carpeta.js?v=202611161200"></script>
 </body>
 </html>

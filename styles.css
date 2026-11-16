@@ -695,3 +695,23 @@ body.sin-scroll{overflow:hidden}
 .cat-cab{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .cat-tr.ccc{grid-template-columns:minmax(150px,1.5fr) 92px 92px 80px 76px 120px 110px 100px 86px}
 .cat-sec{padding:8px 14px;background:#eef2fb;color:#14306F;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-top:1px solid var(--line)}
+
+/* ===== Acciones y combos ===== */
+.acc-h{margin:16px 0 6px;font-size:15px}
+.acc-prov h5{margin:14px 0 6px;font-size:14px;color:#14306F;text-transform:uppercase;letter-spacing:.04em}
+.acc-cat{margin:6px 0;border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden}
+.acc-cat>summary{cursor:pointer;padding:10px 14px;font-weight:700;background:#eef2fb;color:#14306F}
+.acc-tabla{overflow-x:auto}
+.acc-tr{display:grid;grid-template-columns:minmax(220px,2.2fr) 64px 118px 62px 118px 100px minmax(200px,2fr);gap:8px;align-items:center;padding:8px 14px;border-top:1px solid var(--line);font-size:13.5px;min-width:900px}
+.acc-tr.cab{background:#14306F;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;border-top:0}
+.acc-tr .num{text-align:right;font-variant-numeric:tabular-nums}.acc-tr .b{font-weight:700}
+.acc-tr .cond{color:#555;font-size:12.5px}
+.acc-tr.vencida,.acc-combo.vencida{opacity:.55}
+.acc-combo{border:1px solid var(--line);border-radius:12px;background:var(--card);margin:8px 0;overflow:hidden}
+.acc-combo-cab{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;background:#eef2fb}
+.acc-combo-cab small{display:block;color:#555}
+.acc-tr.combo{grid-template-columns:minmax(240px,3fr) 80px 120px 70px 130px;min-width:640px}
+.acc-tr.combo.tot{font-weight:700;background:#f6f8fd}
+.o-sug{display:block;font-size:11.5px;line-height:1.3;margin-top:4px}
+.o-sug.ok{color:#15803d}.o-sug.falta{color:#92400e}
+.o-sug .link{font-size:11.5px;font-weight:700;padding:0}

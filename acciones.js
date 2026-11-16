@@ -161,7 +161,10 @@ function accSugerir() {
   // acción de cada fila de la cotización
   const info = rows.map(r => {
     if (!r.item) return null;
-    const id = Number(r.item.c), f = ACC.filas.find(x => x.segmento === seg && x.id_articulo === id);
+    const id = Number(r.item.c);
+    // Purina no tiene hoja de Autoservicios: para esos clientes valen sus acciones de General (misma lista de precios)
+    let f = ACC.filas.find(x => x.segmento === seg && x.id_articulo === id);
+    if (!f && seg === 'AASS') f = ACC.filas.find(x => x.segmento === 'GENERAL' && x.id_articulo === id && !ACC.filas.some(y => y.proveedor === x.proveedor && y.segmento === 'AASS'));
     if (!f) return null;
     const e = accEfectiva(f);
     if (e.total <= 0) return null;

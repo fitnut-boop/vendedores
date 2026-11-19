@@ -693,7 +693,7 @@ body.sin-scroll{overflow:hidden}
 .cat-tr.total .cat-est.ok{background:#dcfce7;color:#166534}.cat-tr.total .cat-est.bajo{background:#fef3c7;color:#92400e}
 
 .cat-cab{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
-.cat-tr.ccc{grid-template-columns:minmax(150px,1.5fr) 92px 92px 80px 76px 120px 110px 100px 86px}
+.cat-tr.ccc{grid-template-columns:minmax(150px,1.5fr) 88px 88px 78px 72px 110px 96px 96px 92px 84px}
 .cat-sec{padding:8px 14px;background:#eef2fb;color:#14306F;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-top:1px solid var(--line)}
 
 /* ===== Acciones y combos ===== */

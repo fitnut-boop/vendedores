@@ -112,14 +112,16 @@ async function cargarCCC() {
   const corte = info.estado === 'en curso' ? new Date() : info.fin;
   est.textContent = `Al ${corte.toLocaleDateString('es-AR')} · día hábil ${info.trab} de ${info.habiles} · clientes que compraron en cada categoría (neto positivo en el mes)`;
   const mesAnt = new Date(mesRes.getFullYear(), mesRes.getMonth() - 1, 1), etMes = `${NOMBRE_MES(mesAnt).slice(0, 3)} ${String(mesAnt.getFullYear()).slice(2)}`;
+  const anioAnt = new Date(mesRes.getFullYear() - 1, mesRes.getMonth(), 1), etAnio = `${NOMBRE_MES(anioAnt).slice(0, 3)} ${String(anioAnt.getFullYear()).slice(2)}`;
   const calc = r => {
-    const acum = Number(r.ccc) || 0, ant = Number(r.ccc_mes_ant) || 0, obj = r.obj != null ? Number(r.obj) : null, p = proyectar(acum, info), base = p == null ? acum : p;
+    const acum = Number(r.ccc) || 0, ant = Number(r.ccc_mes_ant) || 0, anio = r.ccc_anio_ant != null ? Number(r.ccc_anio_ant) : null, obj = r.obj != null ? Number(r.obj) : null, p = proyectar(acum, info), base = p == null ? acum : p;
     const falta = obj != null ? Math.max(0, obj - acum) : null;
-    return { clave: r.clave, tipo: r.tipo, acum, proy: base, obj, ant, pct: obj > 0 ? base / obj * 100 : null, vsMes: ant > 0 ? (base / ant - 1) * 100 : null,
+    return { clave: r.clave, tipo: r.tipo, acum, proy: base, obj, ant, pct: obj > 0 ? base / obj * 100 : null, vsMes: ant > 0 ? (base / ant - 1) * 100 : null, vsAnio: anio > 0 ? (base / anio - 1) * 100 : null,
       dia: falta == null ? null : info.restantes > 0 ? falta / info.restantes : (falta > 0 ? null : 0) };
   };
   const filas = (data || []).map(calc);
   const cats = filas.filter(f => f.tipo === 'cat').sort((a, b) => (a.pct ?? 999) - (b.pct ?? 999) || b.acum - a.acum);
+  const tots = ['TOTAL', 'NESTLE'].map(k => filas.find(f => f.tipo === 'tot' && f.clave === k)).filter(Boolean);
   const segs = filas.filter(f => f.tipo === 'seg').sort((a, b) => (a.pct ?? 999) - (b.pct ?? 999));
   if (!cats.length && !segs.some(f => f.acum)) { est.textContent = 'Todavía no hay ventas por categoría para este mes.'; return; }
   const est2 = p => (p == null ? 'nd' : p >= 100 ? 'ok' : 'bajo');
@@ -128,20 +130,23 @@ async function cargarCCC() {
     [f.obj != null ? `Objetivo ${nf0.format(f.obj)} clientes · proyección ${nf0.format(f.proy)}` : 'Sin objetivo cargado', `vs ${etMes} ${catPctTxt(f.vsMes)}`], '', est2(f.pct))));
 
   const tabla = el('div', 'cat-tabla'), cab = el('div', 'cat-tr ccc cab');
-  for (const t of ['Categoría', 'Clientes acum.', 'Clientes proy.', 'Objetivo', 'Proy. vs obj.', '', `vs mes ant. (${etMes})`, 'Clientes/día nec.', 'Estado']) cab.append(el('span', null, t));
+  for (const t of ['Categoría', 'Clientes acum.', 'Clientes proy.', 'Objetivo', 'Proy. vs obj.', '', `vs año ant. (${etAnio})`, `vs mes ant. (${etMes})`, 'Clientes/día nec.', 'Estado']) cab.append(el('span', null, t));
   tabla.append(cab);
-  const fila = (f, nombre) => {
-    const e = est2(f.pct), r = el('div', 'cat-tr ccc');
+  const fila = (f, nombre, extra) => {
+    const e = est2(f.pct), r = el('div', 'cat-tr ccc' + (extra ? ' ' + extra : ''));
     const barra = el('span', 'cat-barra'), i = el('i', e), m = el('u');
     i.style.width = f.pct == null ? '0%' : Math.min(100, Math.max(0, f.pct) / 130 * 100) + '%'; m.style.left = (100 / 130 * 100) + '%'; barra.append(i, m);
     r.append(el('span', 'nom', nombre), el('span', 'num', nf0.format(f.acum)), el('span', 'num', nf0.format(f.proy)), el('span', 'num', f.obj != null ? nf0.format(f.obj) : '—'),
-      el('b', 'num ' + e, f.pct == null ? '—' : nf1.format(f.pct) + '%'), barra, el('span', 'num ' + (f.vsMes == null ? '' : f.vsMes >= 0 ? 'sube' : 'baja'), catPctTxt(f.vsMes)),
+      el('b', 'num ' + e, f.pct == null ? '—' : nf1.format(f.pct) + '%'), barra,
+      el('span', 'num ' + (f.vsAnio == null ? '' : f.vsAnio >= 0 ? 'sube' : 'baja'), catPctTxt(f.vsAnio)), el('span', 'num ' + (f.vsMes == null ? '' : f.vsMes >= 0 ? 'sube' : 'baja'), catPctTxt(f.vsMes)),
       el('span', 'num', f.dia == null ? '—' : nf0.format(Math.ceil(f.dia))), el('span', 'cat-est ' + e, e === 'ok' ? 'En ritmo' : e === 'bajo' ? 'Atrasado' : '—'));
     return r;
   };
   const sec = t => el('div', 'cat-sec', t);
-  tabla.append(sec('Por categoría'), ...cats.map(f => fila(f, catNom(f.clave))), sec('Segmentos del plan Nestlé'), ...segs.map(f => fila(f, SEG_NOMBRE[f.clave] || f.clave)));
+  tabla.append(sec('Por categoría'), ...cats.map(f => fila(f, catNom(f.clave))),
+    ...tots.map(f => fila(f, f.clave === 'TOTAL' ? 'Total' : 'Nestlé (sin Hileret ni Mascotas)', f.clave === 'TOTAL' ? 'total' : 'total sub')),
+    sec('Segmentos del plan Nestlé'), ...segs.map(f => fila(f, SEG_NOMBRE[f.clave] || f.clave)));
   cont.replaceChildren(tabla);
-  $('#catNota').textContent = 'Cliente con compra = compró esa categoría o segmento en el mes (neto positivo, sin contar devoluciones). Los segmentos del plan (Cápsulas DG, Torrados sin la presentación de 40 g y Bebidas Polvo) tienen objetivo de Nestlé; las categorías todavía no tienen objetivo de clientes cargado.' +
+  $('#catNota').textContent = 'Cliente con compra = compró esa categoría o segmento en el mes (neto positivo, sin contar devoluciones). Los segmentos del plan (Cápsulas DG, Torrados sin la presentación de 40 g y Bebidas Polvo) tienen objetivo de Nestlé; los objetivos por categoría son los de Gonzalo y se repiten de un mes al otro hasta que los cambie. Total y Nestlé cuentan clientes únicos (un cliente que compró varias categorías cuenta una sola vez).' +
     ' La proyección sigue el mismo ritmo que los kilos.';
 }

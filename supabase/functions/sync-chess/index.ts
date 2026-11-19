@@ -406,6 +406,41 @@ async function syncCategoriasMes(chess: Chess, db: any, mes: string, meses: numb
   return out;
 }
 
+// Clientes únicos con compra (neto positivo) por categoría de un mes pasado, para comparar con el año anterior.
+// TOTAL = clientes con compra en al menos una categoría · NESTLE = igual sin HILERET ni ALIMENTO PARA MASCOTAS.
+async function syncCccMes(chess: Chess, db: any, mes: string, meses: number) {
+  const { data: mapa, error } = await db.rpc('mapa_categorias');
+  if (error) throw new Error(error.message);
+  const cat = new Map<number, string>((mapa ?? []).filter((r: any) => r.cat).map((r: any) => [Number(r.id_articulo), String(r.cat)]));
+  const out: any[] = [];
+  let [y, m] = mes.split('-').map(Number);
+  for (let i = 0; i < meses; i++) {
+    const ini = new Date(Date.UTC(y, m - 1, 1)).toISOString().slice(0, 10), fin = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+    const crudas = await chess.todos('/ventas/', (l) => [l.idEmpresa, l.idDocumento, l.letra, l.serie, l.nrodoc, l.idLinea].join('|'), { fechaDesde: ini, fechaHasta: fin, detallado: true });
+    const por = new Map<string, number>();
+    for (const l of crudas) {
+      if (l.anulado === true || l.anulado === 'SI') continue;
+      const a = num(l.idArticulo), c = num(l.idCliente); if (a == null || c == null) continue;
+      const k = cat.get(a); if (!k || k === 'SIN SEGMENTO') continue;
+      por.set(k + '|' + c, (por.get(k + '|' + c) ?? 0) + (num(l.cantidadesTotal) ?? 0));
+    }
+    const porCat = new Map<string, Set<number>>(), todos = new Set<number>(), nestle = new Set<number>();
+    for (const [key, b] of por) {
+      if (!(b > 0)) continue;
+      const [k, c] = key.split('|'), cli = Number(c);
+      (porCat.get(k) ?? porCat.set(k, new Set<number>()).get(k)!).add(cli);
+      todos.add(cli); if (k !== 'HILERET' && k !== 'ALIMENTO PARA MASCOTAS') nestle.add(cli);
+    }
+    const filas = [...porCat.entries()].map(([clave, s]) => ({ clave, ccc: s.size })).concat([{ clave: 'TOTAL', ccc: todos.size }, { clave: 'NESTLE', ccc: nestle.size }]);
+    if (todos.size === 0) throw new Error('Chess devolvió 0 clientes con compra entre ' + ini + ' y ' + fin + ': no se guarda nada.');
+    const { error: e2 } = await db.rpc('guardar_ccc_mes', { p_periodo: ini, p_filas: filas });
+    if (e2) throw new Error(e2.message);
+    out.push({ mes: ini.slice(0, 7), lineas: crudas.length, total: todos.size, nestle: nestle.size });
+    m--; if (m === 0) { m = 12; y--; }
+  }
+  return out;
+}
+
 /* ---------- entrada ---------- */
 
 Deno.serve(async (req: Request) => {
@@ -438,6 +473,7 @@ Deno.serve(async (req: Request) => {
     if (solo === 'primeras') out.primeras = await syncPrimeras(chess, db, url.searchParams.get('hasta') || hoyAR().slice(0, 7), Math.min(Number(url.searchParams.get('meses')) || 1, 6));
     if (solo === 'ventas') out.ventas = await syncVentas(chess, db, url.searchParams.get('mes') === 'anterior');
     if (solo === 'categorias') out.categorias = await syncCategoriasMes(chess, db, url.searchParams.get('mes') || hoyAR().slice(0, 7), Math.min(Number(url.searchParams.get('meses')) || 1, 3));
+    if (solo === 'ccc') out.ccc = await syncCccMes(chess, db, url.searchParams.get('mes') || hoyAR().slice(0, 7), Math.min(Number(url.searchParams.get('meses')) || 1, 3));
     return Response.json({ ok: true, ...out });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
